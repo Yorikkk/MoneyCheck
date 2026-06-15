@@ -10,9 +10,9 @@ const navItems = [
   { to: '/settings', label: 'Настройки', icon: '⚙️' },
 ]
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({ children, className = '' }: { children: ReactNode, className?: string }) {
   return (
-    <div className="flex flex-col h-dvh max-w-lg mx-auto bg-gray-50">
+    <div className={`flex flex-col h-dvh max-w-lg mx-auto bg-gray-50 ${className}`}>
       <main className="flex-1 overflow-y-auto p-4 pb-20">
         {children}
       </main>

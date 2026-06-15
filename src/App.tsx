@@ -18,7 +18,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <HashRouter>
-        <AppShell>
+        <AppShell className="relative">
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/add" element={<AddExpense />} />

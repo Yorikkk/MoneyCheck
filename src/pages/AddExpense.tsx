@@ -16,6 +16,9 @@ export default function AddExpense() {
   const [principalAmount, setPrincipalAmount] = useState('')
   const [interestAmount, setInterestAmount] = useState('')
   const [saving, setSaving] = useState(false)
+  const [place, setPlace] = useState('')
+
+  const placeError = place.length > 30 ? 'Максимум 30 символов' : ''
 
   const categories = useCategories(type) ?? []
   const accounts = useAccounts() ?? []
@@ -152,6 +155,21 @@ export default function AddExpense() {
           className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm"
         />
 
+        <div className="relative">
+          <input
+            placeholder="Место покупки"
+            value={place}
+            onChange={(e) => setPlace(e.target.value)}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm"
+          />
+          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">
+            { place.length }/30
+          </span>
+        </div>
+        {placeError && (
+          <p className="text-red-500 text-xs mt-1">{ placeError }</p>
+        )}
+
         {isLoanType && (
           <div className="bg-orange-50 rounded-lg p-3 space-y-2">
             <div className="text-xs text-orange-600 font-medium">Платеж по кредиту</div>
@@ -180,7 +198,7 @@ export default function AddExpense() {
 
       <button
         onClick={handleSubmit}
-        disabled={saving || !getTotalAmount() || !categoryId || !accountId}
+        disabled={saving || !getTotalAmount() || !categoryId || !accountId || !!placeError}
         className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold text-sm disabled:opacity-50"
       >
         {saving ? 'Сохранение...' : type === 'expense' ? 'Записать расход' : 'Записать доход'}
