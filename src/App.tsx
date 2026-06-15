@@ -5,6 +5,7 @@ import { AppShell } from '@/components/layout/AppShell'
 import { seedDefaults } from '@/db/seed'
 import Dashboard from '@/pages/Dashboard'
 import AddExpense from '@/pages/AddExpense'
+import Balance from '@/pages/Balance'
 import Transactions from '@/pages/Transactions'
 import Reports from '@/pages/Reports'
 import Settings from '@/pages/Settings'
@@ -21,6 +22,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/add" element={<AddExpense />} />
+            <Route path="/balance" element={<Balance />} />
             <Route path="/transactions" element={<Transactions />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/settings" element={<Settings />} />

@@ -1,18 +1,28 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import dayjs from 'dayjs'
+import { useLocation } from 'react-router-dom'
 import { useAllTransactions, useAccounts, useCategories } from '@/hooks/useDb'
 import { deleteTransaction, updateTransaction, updateAccount } from '@/db'
 import { formatCurrency } from '@/lib/utils'
 import type { Transaction } from '@/db'
 
 export default function Transactions() {
+  const location = useLocation()
+  const locationState = location.state as { filterAccount?: number } | null
+
   const allTx = useAllTransactions() ?? []
   const accounts = useAccounts() ?? []
   const categories = useCategories() ?? []
 
-  const [filterAccount, setFilterAccount] = useState<number | null>(null)
+  const [filterAccount, setFilterAccount] = useState<number | null>(locationState?.filterAccount ?? null)
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all')
   const [editTx, setEditTx] = useState<Transaction | null>(null)
+
+  useEffect(() => {
+    if (locationState?.filterAccount) {
+      setFilterAccount(locationState.filterAccount)
+    }
+  }, [locationState?.filterAccount])
 
   const filtered = useMemo(() => {
     let list = allTx
