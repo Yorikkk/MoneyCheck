@@ -1,57 +1,38 @@
-# MoneyCheck — Семейный учёт расходов
+# MoneyCheck
 
-## Стек
-- **React 19** + **TypeScript** (strict mode)
-- **Vite 6** сборщик
-- **Dexie.js 4** — IndexedDB обёртка (все данные в браузере)
-- **Zustand 5** — UI-состояние (оверлей поверх Dexie)
-- **TanStack React Query 5** — будущая синхронизация с бэкендом
-- **React Router 7** — HashRouter (5 страниц)
-- **Tailwind CSS 4** — CSS-first конфигурация (без tailwind.config.js)
-- **Recharts** — графики
-- **Dayjs** — даты
-- **vite-plugin-pwa** — PWA (service worker, manifest)
+Full client-side PWA. All data in IndexedDB (Dexie). No backend, no API keys, no env.
 
-## Архитектура
+## Commands
 
-### База данных (Dexie) — `src/db/db.ts`
-4 таблицы: `transactions`, `categories`, `budgets`, `familyMembers`
-Версионирование схемы — `db.version(N).stores({...})`
-
-### Data Access — `src/db/*.ts`
-Раздельные файлы для каждой таблицы с CRUD-функциями
-Все экспорты через `src/db/index.ts`
-
-### Хуки — `src/hooks/useDb.ts`
-`useLiveQuery` для реактивности — компоненты перерендериваются при изменении данных в IndexedDB
-
-### Страницы (5 штук) — `src/pages/`
-Закрывают основной функционал:
-- **Dashboard** — сводка за месяц
-- **AddExpense** — форма добавления расхода
-- **Transactions** — история транзакций
-- **Reports** — графики и аналитика
-- **Settings** — категории, члены семьи, бюджеты
-
-### Навигация — `src/components/layout/AppShell.tsx`
-Bottom Navigation (mobile-first), max-w-lg контейнер по центру
-
-## Конвенции кода
-- Путь `@/` → `src/` (Vite alias)
-- Компоненты — `export default function PageName()`
-- Layout-компоненты — именованный экспорт
-- Типы данных — общие интерфейсы в `db.ts`
-- Форматтеры — `src/lib/utils.ts`
-- Минимум комментариев в коде
-- Новые зависимости добавлять через `npm install <pkg>`
-
-## Команды
 ```bash
-npm run dev      # Dev-сервер
-npm run build    # TypeCheck + Vite build
-npm run preview  # Превью продакшн-сборки
+npm run dev       # Vite dev server
+npm run build     # tsc -b + vite build (typecheck then bundle)
+npm run preview   # preview production build
 ```
 
-## План на будущее
-- Бэкенд-синхронизация (Dexie Observable + React Query)
-- Возможна замена IndexedDB на SQLite через Opal если потребуется
+No test, lint, or format commands exist. No CI.
+
+## Stack quirks
+
+- **React 19 + TypeScript strict** — `noUnusedLocals`, `noUnusedParameters` on in `tsconfig.app.json`
+- **Vite 6** — `@/` → `src/` alias
+- **Tailwind CSS 4** — CSS-first: `@import "tailwindcss"` in `src/index.css`, no config file
+- **Dexie 4** — 8 tables (schema v2): `transactions`, `categories`, `budgets`, `familyMembers`, `accountTypes`, `accounts`, `debts`, `debtPayments`
+- **Reactivity** — `useLiveQuery` from `dexie-react-hooks` in `src/hooks/useDb.ts` (re-renders on IndexedDB change)
+- **HashRouter** — not BrowserRouter
+- **PWA** — `vite-plugin-pwa` with auto-update service worker
+- **React Router v7** — 6 pages: Dashboard, AddExpense, Transactions, DebtsPage, Reports, Settings
+- **Zustand 5** — UI state overlay (not data)
+- **TanStack Query 5** — wired in `App.tsx` but unused (planned for future sync)
+
+## DB
+
+Schema versioning in `src/db/db.ts`. All CRUD functions in `src/db/*.ts`, re-exported from `src/db/index.ts`. `seedDefaults()` in `src/db/seed.ts` runs idempotently on every app mount (checks count then bulk-adds if empty).
+
+## Conventions
+
+- Components: `export default function PageName()` (pages), named exports (layout)
+- Types: shared interfaces in `src/db/db.ts`
+- Formatters: `src/lib/utils.ts` — ru-RU locale, RUB currency
+- `AppShell` is mobile-first (`h-dvh`, `max-w-lg`, bottom nav)
+- No comments in code

@@ -112,4 +112,15 @@ db.version(2).stores({
   debtPayments: '++id, debtId',
 })
 
+db.version(3).stores({
+  transactions: '++id, date, categoryId, type, accountId',
+  categories: '++id, type, order',
+  budgets: '++id, [month+year]',
+  familyMembers: '++id',
+  accountTypes: '++id, order',
+  accounts: '++id, familyMemberId',
+  debts: '++id, status, familyMemberId',
+  debtPayments: '++id, debtId',
+})
+
 export { db }
