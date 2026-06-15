@@ -21,7 +21,7 @@ No test, lint, or format commands exist. No CI.
 - **Reactivity** — `useLiveQuery` from `dexie-react-hooks` in `src/hooks/useDb.ts` (re-renders on IndexedDB change)
 - **HashRouter** — not BrowserRouter
 - **PWA** — `vite-plugin-pwa` with auto-update service worker
-- **React Router v7** — 6 pages: Dashboard, AddExpense, Transactions, DebtsPage, Reports, Settings
+- **React Router v7** — 5 pages: Dashboard, AddExpense, Transactions, Reports, Settings
 - **Zustand 5** — UI state overlay (not data)
 - **TanStack Query 5** — wired in `App.tsx` but unused (planned for future sync)
 

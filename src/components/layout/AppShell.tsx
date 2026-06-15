@@ -5,7 +5,6 @@ const navItems = [
   { to: '/', label: 'Главная', icon: '🏠' },
   { to: '/add', label: 'Добавить', icon: '➕' },
   { to: '/transactions', label: 'История', icon: '📋' },
-  { to: '/debts', label: 'Долги', icon: '📝' },
   { to: '/reports', label: 'Отчёты', icon: '📊' },
   { to: '/settings', label: 'Настройки', icon: '⚙️' },
 ]
