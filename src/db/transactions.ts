@@ -23,6 +23,14 @@ export async function getTransactionsByCategory(categoryId: number) {
     .toArray()
 }
 
+export async function getTransactionsByAccount(accountId: number) {
+  return db.transactions
+    .where('accountId')
+    .equals(accountId)
+    .reverse()
+    .toArray()
+}
+
 export async function getAllTransactions() {
   return db.transactions.orderBy('date').reverse().toArray()
 }

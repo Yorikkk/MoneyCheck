@@ -1,12 +1,55 @@
 export { db } from './db'
-export type { Transaction, Category, Budget, FamilyMember } from './db'
+export type {
+  Transaction,
+  Category,
+  Budget,
+  FamilyMember,
+  AccountType,
+  Account,
+  Debt,
+  DebtPayment,
+} from './db'
+
 export { getCategories, addCategory, updateCategory, deleteCategory } from './categories'
 export {
   addTransaction,
   getTransactionsByDateRange,
   getTransactionsByCategory,
+  getTransactionsByAccount,
   getAllTransactions,
   updateTransaction,
   deleteTransaction,
 } from './transactions'
 export { getBudgets, setBudget, deleteBudget } from './budgets'
+export {
+  getFamilyMembers,
+  addFamilyMember,
+  updateFamilyMember,
+  deleteFamilyMember,
+} from './familyMembers'
+export {
+  getAccountTypes,
+  addAccountType,
+  updateAccountType,
+  deleteAccountType,
+} from './accountTypes'
+export {
+  getAccounts,
+  getAccountsByFamilyMember,
+  addAccount,
+  updateAccount,
+  deleteAccount,
+} from './accounts'
+export {
+  getDebts,
+  getDebtsByFamilyMember,
+  addDebt,
+  updateDebt,
+  deleteDebt,
+} from './debts'
+export {
+  getDebtPayments,
+  addDebtPayment,
+  updateDebtPayment,
+  deleteDebtPayment,
+} from './debtPayments'

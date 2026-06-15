@@ -5,6 +5,7 @@ const navItems = [
   { to: '/', label: 'Главная', icon: '🏠' },
   { to: '/add', label: 'Добавить', icon: '➕' },
   { to: '/transactions', label: 'История', icon: '📋' },
+  { to: '/debts', label: 'Долги', icon: '📝' },
   { to: '/reports', label: 'Отчёты', icon: '📊' },
   { to: '/settings', label: 'Настройки', icon: '⚙️' },
 ]
@@ -22,12 +23,12 @@ export function AppShell({ children }: { children: ReactNode }) {
               <NavLink
                 to={item.to}
                 className={({ isActive }) =>
-                  `flex flex-col items-center gap-0.5 px-3 py-1 text-xs ${
+                  `flex flex-col items-center gap-0.5 px-1 py-1 text-[10px] ${
                     isActive ? 'text-blue-600' : 'text-gray-500'
                   }`
                 }
               >
-                <span className="text-lg">{item.icon}</span>
+                <span className="text-base leading-none">{item.icon}</span>
                 <span>{item.label}</span>
               </NavLink>
             </li>

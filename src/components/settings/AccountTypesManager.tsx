@@ -1,0 +1,94 @@
+import { useState } from 'react'
+import { useAccountTypes } from '@/hooks/useDb'
+import { addAccountType, updateAccountType, deleteAccountType } from '@/db'
+import type { AccountType } from '@/db'
+import { ColorPicker } from '@/components/ui/ColorPicker'
+
+export default function AccountTypesManager({ onBack }: { onBack: () => void }) {
+  const types = useAccountTypes() ?? []
+  const [edit, setEdit] = useState<Partial<AccountType> | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  async function handleSave() {
+    if (!edit || !edit.name?.trim()) return
+    setSaving(true)
+    if (edit.id) {
+      await updateAccountType(edit.id, { name: edit.name.trim(), icon: edit.icon || '💳', color: edit.color || '#2196F3', isLoan: edit.isLoan ?? false, order: edit.order ?? 99 })
+    } else {
+      const maxOrder = types.reduce((m, t) => Math.max(m, t.order), 0)
+      await addAccountType({ name: edit.name.trim(), icon: edit.icon || '💳', color: edit.color || '#2196F3', isLoan: edit.isLoan ?? false, order: maxOrder + 1 })
+    }
+    setEdit(null)
+    setSaving(false)
+  }
+
+  async function handleDelete(id: number) {
+    await deleteAccountType(id)
+  }
+
+  return (
+    <div>
+      <div className="flex items-center gap-3 mb-4">
+        <button onClick={onBack} className="text-blue-600 text-lg">←</button>
+        <h2 className="text-xl font-bold">Типы счетов</h2>
+      </div>
+
+      {edit && (
+        <div className="bg-white rounded-xl p-4 shadow-sm mb-4 space-y-3">
+          <input
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+            placeholder="Название типа"
+            value={edit.name || ''}
+            onChange={(e) => setEdit({ ...edit, name: e.target.value })}
+            autoFocus
+          />
+          <input
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+            placeholder="Иконка (emoji)"
+            value={edit.icon || ''}
+            onChange={(e) => setEdit({ ...edit, icon: e.target.value })}
+            maxLength={2}
+          />
+          <ColorPicker
+            value={edit.color || '#2196F3'}
+            onChange={(c) => setEdit({ ...edit, color: c })}
+          />
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={edit.isLoan ?? false}
+              onChange={(e) => setEdit({ ...edit, isLoan: e.target.checked })}
+              className="w-4 h-4 rounded border-gray-300 text-blue-600"
+            />
+            Кредитный счёт (проценты + тело)
+          </label>
+          <div className="flex gap-2">
+            <button onClick={() => setEdit(null)} className="flex-1 py-2 rounded-lg border border-gray-300 text-sm">Отмена</button>
+            <button onClick={handleSave} disabled={saving} className="flex-1 py-2 rounded-lg bg-blue-600 text-white text-sm">
+              {saving ? '...' : 'Сохранить'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        {types.map((t) => (
+          <div key={t.id} className="bg-white rounded-xl p-3 shadow-sm flex items-center gap-3">
+            <span className="text-2xl">{t.icon}</span>
+            <div className="flex-1 min-w-0">
+              <span className="font-medium">{t.name}</span>
+              {t.isLoan && <span className="text-xs text-gray-400 ml-2">📉 кредит</span>}
+            </div>
+            <div className="w-4 h-4 rounded-full" style={{ backgroundColor: t.color }} />
+            <button onClick={() => setEdit(t)} className="text-gray-400 text-sm px-2">✏️</button>
+            <button onClick={() => t.id && handleDelete(t.id)} className="text-gray-400 text-sm px-2">🗑️</button>
+          </div>
+        ))}
+      </div>
+
+      <button onClick={() => setEdit({ name: '', icon: '💳', color: '#2196F3', isLoan: false })} className="w-full mt-4 py-3 rounded-xl border-2 border-dashed border-gray-300 text-gray-500 text-sm">
+        ＋ Добавить тип счета
+      </button>
+    </div>
+  )
+}

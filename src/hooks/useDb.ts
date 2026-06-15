@@ -20,6 +20,12 @@ export function useAllTransactions() {
   , [])
 }
 
+export function useTransactionsByAccount(accountId: number) {
+  return useLiveQuery(() =>
+    db.transactions.where('accountId').equals(accountId).reverse().toArray()
+  , [accountId])
+}
+
 export function useCategories(type?: 'income' | 'expense') {
   return useLiveQuery(() => {
     let coll = db.categories.orderBy('order')
@@ -38,4 +44,35 @@ export function useFamilyMembers() {
   return useLiveQuery(() =>
     db.familyMembers.toArray()
   , [])
+}
+
+export function useAccountTypes() {
+  return useLiveQuery(() =>
+    db.accountTypes.orderBy('order').toArray()
+  , [])
+}
+
+export function useAccounts() {
+  return useLiveQuery(() =>
+    db.accounts.toArray()
+  , [])
+}
+
+export function useAccountsByFamilyMember(familyMemberId: number) {
+  return useLiveQuery(() =>
+    db.accounts.where('familyMemberId').equals(familyMemberId).toArray()
+  , [familyMemberId])
+}
+
+export function useDebts(status?: 'active' | 'closed' | 'overdue') {
+  return useLiveQuery(() => {
+    if (status) return db.debts.where('status').equals(status).reverse().toArray()
+    return db.debts.reverse().toArray()
+  }, [status])
+}
+
+export function useDebtPayments(debtId: number) {
+  return useLiveQuery(() =>
+    db.debtPayments.where('debtId').equals(debtId).reverse().toArray()
+  , [debtId])
 }

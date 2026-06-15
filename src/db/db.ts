@@ -5,9 +5,12 @@ export interface Transaction {
   amount: number
   description: string
   categoryId: number
+  accountId: number
   familyMemberId: number
   date: Date
   type: 'income' | 'expense'
+  principalAmount?: number | null
+  interestAmount?: number | null
   createdAt: Date
 }
 
@@ -35,11 +38,60 @@ export interface FamilyMember {
   color?: string
 }
 
+export interface AccountType {
+  id?: number
+  name: string
+  icon: string
+  color: string
+  order: number
+  isLoan: boolean
+}
+
+export interface Account {
+  id?: number
+  name: string
+  typeId: number
+  currency: string
+  balance: number
+  icon: string
+  color: string
+  familyMemberId: number
+  createdAt: Date
+}
+
+export interface Debt {
+  id?: number
+  type: 'lent' | 'borrowed'
+  personName: string
+  description: string
+  amount: number
+  interestRate: number
+  startDate: Date
+  dueDate: Date
+  status: 'active' | 'closed' | 'overdue'
+  familyMemberId: number
+  createdAt: Date
+  closedAt?: Date | null
+}
+
+export interface DebtPayment {
+  id?: number
+  debtId: number
+  amount: number
+  date: Date
+  note?: string
+  createdAt: Date
+}
+
 const db = new Dexie('MoneyCheckDB') as Dexie & {
   transactions: EntityTable<Transaction, 'id'>
   categories: EntityTable<Category, 'id'>
   budgets: EntityTable<Budget, 'id'>
   familyMembers: EntityTable<FamilyMember, 'id'>
+  accountTypes: EntityTable<AccountType, 'id'>
+  accounts: EntityTable<Account, 'id'>
+  debts: EntityTable<Debt, 'id'>
+  debtPayments: EntityTable<DebtPayment, 'id'>
 }
 
 db.version(1).stores({
@@ -47,6 +99,17 @@ db.version(1).stores({
   categories: '++id, type',
   budgets: '++id, [month+year]',
   familyMembers: '++id',
+})
+
+db.version(2).stores({
+  transactions: '++id, date, categoryId, type, accountId',
+  categories: '++id, type',
+  budgets: '++id, [month+year]',
+  familyMembers: '++id',
+  accountTypes: '++id',
+  accounts: '++id, familyMemberId',
+  debts: '++id, status, familyMemberId',
+  debtPayments: '++id, debtId',
 })
 
 export { db }
