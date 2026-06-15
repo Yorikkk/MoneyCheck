@@ -1,0 +1,17 @@
+import dayjs from 'dayjs'
+
+export function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('ru-RU', {
+    style: 'currency',
+    currency: 'RUB',
+    minimumFractionDigits: 0,
+  }).format(amount)
+}
+
+export function formatDate(date: Date | string): string {
+  return dayjs(date).format('D MMM YYYY')
+}
+
+export function formatDateTime(date: Date | string): string {
+  return dayjs(date).format('D MMM YYYY, HH:mm')
+}

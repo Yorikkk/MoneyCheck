@@ -1,0 +1,39 @@
+import { type ReactNode } from 'react'
+import { NavLink } from 'react-router-dom'
+
+const navItems = [
+  { to: '/', label: 'Главная', icon: '🏠' },
+  { to: '/add', label: 'Добавить', icon: '➕' },
+  { to: '/transactions', label: 'История', icon: '📋' },
+  { to: '/reports', label: 'Отчёты', icon: '📊' },
+  { to: '/settings', label: 'Настройки', icon: '⚙️' },
+]
+
+export function AppShell({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex flex-col h-dvh max-w-lg mx-auto bg-gray-50">
+      <main className="flex-1 overflow-y-auto p-4 pb-20">
+        {children}
+      </main>
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 max-w-lg mx-auto">
+        <ul className="flex justify-around py-1">
+          {navItems.map((item) => (
+            <li key={item.to}>
+              <NavLink
+                to={item.to}
+                className={({ isActive }) =>
+                  `flex flex-col items-center gap-0.5 px-3 py-1 text-xs ${
+                    isActive ? 'text-blue-600' : 'text-gray-500'
+                  }`
+                }
+              >
+                <span className="text-lg">{item.icon}</span>
+                <span>{item.label}</span>
+              </NavLink>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </div>
+  )
+}
