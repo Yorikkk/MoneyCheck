@@ -4,13 +4,14 @@ export interface Transaction {
   id?: number
   amount: number
   description: string
-  categoryId: number
+  categoryId?: number
   accountId: number
   familyMemberId: number
   date: Date
-  type: 'income' | 'expense'
+  type: 'income' | 'expense' | 'transfer'
   principalAmount?: number | null
   interestAmount?: number | null
+  transferToAccountId?: number
   createdAt: Date
 }
 
@@ -138,6 +139,17 @@ db.version(4).stores({
   await tx.table('accounts').each((account: Account) => {
     tx.table('accounts').update(account.id!, { order: i++ })
   })
+})
+
+db.version(5).stores({
+  transactions: '++id, date, categoryId, type, accountId, transferToAccountId',
+  categories: '++id, type, order',
+  budgets: '++id, [month+year]',
+  familyMembers: '++id',
+  accountTypes: '++id, order',
+  accounts: '++id, familyMemberId, order',
+  debts: '++id, status, familyMemberId',
+  debtPayments: '++id, debtId',
 })
 
 export { db }

@@ -52,7 +52,7 @@ export default function Reports() {
   const catSpending: Record<number, number> = {}
   for (const tx of currentTx) {
     if (tx.type === 'expense') {
-      catSpending[tx.categoryId] = (catSpending[tx.categoryId] ?? 0) + tx.amount
+      catSpending[tx.categoryId!] = (catSpending[tx.categoryId!] ?? 0) + tx.amount
     }
   }
 

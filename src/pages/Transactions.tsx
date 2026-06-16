@@ -15,7 +15,7 @@ export default function Transactions() {
   const categories = useCategories() ?? []
 
   const [filterAccount, setFilterAccount] = useState<number | null>(locationState?.filterAccount ?? null)
-  const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all')
+  const [filterType, setFilterType] = useState<'all' | 'income' | 'expense' | 'transfer'>('all')
   const [editTx, setEditTx] = useState<Transaction | null>(null)
 
   useEffect(() => {
@@ -26,7 +26,7 @@ export default function Transactions() {
 
   const filtered = useMemo(() => {
     let list = allTx
-    if (filterAccount) list = list.filter((t) => t.accountId === filterAccount)
+    if (filterAccount) list = list.filter((t) => t.accountId === filterAccount || t.transferToAccountId === filterAccount)
     if (filterType !== 'all') list = list.filter((t) => t.type === filterType)
     return list
   }, [allTx, filterAccount, filterType])
@@ -43,10 +43,18 @@ export default function Transactions() {
 
   async function handleDelete(tx: Transaction) {
     if (!confirm('Удалить транзакцию?')) return
-    const account = accounts.find((a) => a.id === tx.accountId)
-    if (account) {
-      const revert = tx.type === 'income' ? account.balance - tx.amount : account.balance + tx.amount
-      await updateAccount(tx.accountId, { balance: revert })
+
+    if (tx.type === 'transfer') {
+      const fromAccount = accounts.find((a) => a.id === tx.accountId)
+      const toAccount = accounts.find((a) => a.id === tx.transferToAccountId)
+      if (fromAccount) await updateAccount(tx.accountId, { balance: fromAccount.balance + tx.amount })
+      if (toAccount) await updateAccount(tx.transferToAccountId!, { balance: toAccount.balance - tx.amount })
+    } else {
+      const account = accounts.find((a) => a.id === tx.accountId)
+      if (account) {
+        const revert = tx.type === 'income' ? account.balance - tx.amount : account.balance + tx.amount
+        await updateAccount(tx.accountId, { balance: revert })
+      }
     }
     await deleteTransaction(tx.id!)
   }
@@ -89,6 +97,7 @@ export default function Transactions() {
           <option value="all">Все</option>
           <option value="expense">Расходы</option>
           <option value="income">Доходы</option>
+          <option value="transfer">Переводы</option>
         </select>
       </div>
 
@@ -110,27 +119,54 @@ export default function Transactions() {
                   <div
                     key={tx.id}
                     className="bg-white rounded-xl p-3 shadow-sm flex items-center gap-3 cursor-pointer"
-                    onClick={() => setEditTx(tx)}
+                    onClick={() => { if (tx.type !== 'transfer') setEditTx(tx) }}
                   >
-                    <span className="text-lg">{cat?.icon ?? '📦'}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium truncate">{cat?.name ?? '—'}{tx.description ? `, ${tx.description}` : ''}</div>
-                      <div className="text-xs text-gray-400 truncate">{account?.name}</div>
-                      {tx.principalAmount && (
-                        <div className="text-xs text-orange-500">Тело: {formatCurrency(tx.principalAmount)}</div>
-                      )}
-                    </div>
-                    <div className="text-right shrink-0">
-                      <div className={`text-sm font-semibold ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                        {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
-                      </div>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleDelete(tx) }}
-                        className="text-xs text-gray-400 hover:text-red-500"
-                      >
-                        🗑️
-                      </button>
-                    </div>
+                    {tx.type === 'transfer' ? (
+                      <>
+                        <span className="text-lg">🔄</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium truncate">
+                            Перевод {tx.description ? `, ${tx.description}` : ''}
+                          </div>
+                          <div className="text-xs text-gray-400 truncate">
+                            {account?.name} → {accounts.find((a) => a.id === tx.transferToAccountId)?.name}
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="text-sm font-semibold text-blue-600">
+                            {formatCurrency(tx.amount)}
+                          </div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDelete(tx) }}
+                            className="text-xs text-gray-400 hover:text-red-500"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-lg">{cat?.icon ?? '📦'}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium truncate">{cat?.name ?? '—'}{tx.description ? `, ${tx.description}` : ''}</div>
+                          <div className="text-xs text-gray-400 truncate">{account?.name}</div>
+                          {tx.principalAmount && (
+                            <div className="text-xs text-orange-500">Тело: {formatCurrency(tx.principalAmount)}</div>
+                          )}
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className={`text-sm font-semibold ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                            {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
+                          </div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDelete(tx) }}
+                            className="text-xs text-gray-400 hover:text-red-500"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )
               })}

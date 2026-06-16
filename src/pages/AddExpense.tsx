@@ -5,12 +5,15 @@ import { useCategories, useAccounts, useAccountTypes } from '@/hooks/useDb'
 import { addTransaction, updateAccount } from '@/db'
 import { formatCurrency } from '@/lib/utils'
 
+type Tab = 'expense' | 'income' | 'transfer'
+
 export default function AddExpense() {
   const navigate = useNavigate()
-  const [type, setType] = useState<'income' | 'expense'>('expense')
+  const [type, setType] = useState<Tab>('expense')
   const [amount, setAmount] = useState('')
   const [categoryId, setCategoryId] = useState<number | null>(null)
   const [accountId, setAccountId] = useState<number | null>(null)
+  const [transferToAccountId, setTransferToAccountId] = useState<number | null>(null)
   const [date, setDate] = useState(dayjs().format('YYYY-MM-DD'))
   const [description, setDescription] = useState('')
   const [principalAmount, setPrincipalAmount] = useState('')
@@ -20,7 +23,7 @@ export default function AddExpense() {
 
   const placeError = place.length > 30 ? 'Максимум 30 символов' : ''
 
-  const categories = useCategories(type) ?? []
+  const categories = useCategories(type === 'transfer' ? undefined : type) ?? []
   const accounts = useAccounts() ?? []
   const accountTypes = useAccountTypes() ?? []
 
@@ -35,35 +38,58 @@ export default function AddExpense() {
     return Number(amount) || 0
   }
 
+  function isFormValid(): boolean {
+    const total = getTotalAmount()
+    if (!total) return false
+    if (type === 'transfer') return !!accountId && !!transferToAccountId && accountId !== transferToAccountId
+    return !!categoryId && !!accountId
+  }
+
   async function handleSubmit() {
     const total = getTotalAmount()
-    if (!total || !categoryId || !accountId) return
+    if (!total || !isFormValid() || !!placeError) return
     setSaving(true)
 
-    const txData = {
-      amount: total,
-      description: description.trim(),
-      categoryId,
-      accountId,
-      familyMemberId: selectedAccount!.familyMemberId,
-      date: new Date(date),
-      type,
-      principalAmount: isLoanType ? (Number(principalAmount) || null) : null,
-      interestAmount: isLoanType ? (Number(interestAmount) || null) : null,
-    }
-
-    await addTransaction(txData)
-    const account = selectedAccount!
-    if (type === 'income') {
-      await updateAccount(accountId, { balance: account.balance + total })
-    } else if (isLoanType && Number(principalAmount)) {
-      await updateAccount(accountId, { balance: account.balance - Number(principalAmount) })
+    if (type === 'transfer') {
+      await addTransaction({
+        amount: total,
+        description: description.trim(),
+        accountId: accountId!,
+        familyMemberId: selectedAccount!.familyMemberId,
+        date: new Date(date),
+        type: 'transfer',
+        transferToAccountId: transferToAccountId!,
+      })
+      await updateAccount(accountId!, { balance: selectedAccount!.balance - total })
+      const toAccount = accounts.find((a) => a.id === transferToAccountId)!
+      await updateAccount(transferToAccountId!, { balance: toAccount.balance + total })
     } else {
-      await updateAccount(accountId, { balance: account.balance - total })
+      const txData = {
+        amount: total,
+        description: description.trim(),
+        categoryId: categoryId!,
+        accountId: accountId!,
+        familyMemberId: selectedAccount!.familyMemberId,
+        date: new Date(date),
+        type,
+        principalAmount: isLoanType ? (Number(principalAmount) || null) : null,
+        interestAmount: isLoanType ? (Number(interestAmount) || null) : null,
+      }
+
+      await addTransaction(txData)
+      if (type === 'income') {
+        await updateAccount(accountId!, { balance: selectedAccount!.balance + total })
+      } else if (isLoanType && Number(principalAmount)) {
+        await updateAccount(accountId!, { balance: selectedAccount!.balance - Number(principalAmount) })
+      } else {
+        await updateAccount(accountId!, { balance: selectedAccount!.balance - total })
+      }
     }
 
     setAmount('')
     setCategoryId(null)
+    setAccountId(null)
+    setTransferToAccountId(null)
     setDescription('')
     setPrincipalAmount('')
     setInterestAmount('')
@@ -71,18 +97,24 @@ export default function AddExpense() {
     navigate('/')
   }
 
+  const tabs: { key: Tab; label: string }[] = [
+    { key: 'expense', label: '💰 Расход' },
+    { key: 'income', label: '📈 Доход' },
+    { key: 'transfer', label: '🔄 Перевод' },
+  ]
+
   return (
     <div>
       <div className="flex bg-gray-100 rounded-lg p-1 mb-4">
-        {(['expense', 'income'] as const).map((t) => (
+        {tabs.map(({ key, label }) => (
           <button
-            key={t}
-            onClick={() => { setType(t); setCategoryId(null) }}
+            key={key}
+            onClick={() => { setType(key); setCategoryId(null); setTransferToAccountId(null) }}
             className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
-              type === t ? 'bg-white text-blue-600 shadow-sm font-bold' : 'text-gray-500'
+              type === key ? 'bg-white text-blue-600 shadow-sm font-bold' : 'text-gray-500'
             }`}
           >
-            {t === 'expense' ? '💰 Расход' : '📈 Доход'}
+            {label}
           </button>
         ))}
       </div>
@@ -101,25 +133,27 @@ export default function AddExpense() {
         </div>
       </div>
 
-      <div className="mb-4">
-        <div className="text-sm text-gray-500 mb-2 font-medium">Категория</div>
-        <div className="grid grid-cols-4 gap-2">
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setCategoryId(cat.id!)}
-              className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-all ${
-                categoryId === cat.id
-                  ? 'bg-blue-50 ring-2 ring-blue-500'
-                  : 'bg-white shadow-sm'
-              }`}
-            >
-              <span className="text-2xl">{cat.icon}</span>
-              <span className="text-xs truncate w-full text-center">{cat.name}</span>
-            </button>
-          ))}
+      {type !== 'transfer' && (
+        <div className="mb-4">
+          <div className="text-sm text-gray-500 mb-2 font-medium">Категория</div>
+          <div className="grid grid-cols-4 gap-2">
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setCategoryId(cat.id!)}
+                className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-all ${
+                  categoryId === cat.id
+                    ? 'bg-blue-50 ring-2 ring-blue-500'
+                    : 'bg-white shadow-sm'
+                }`}
+              >
+                <span className="text-2xl">{cat.icon}</span>
+                <span className="text-xs truncate w-full text-center">{cat.name}</span>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="bg-white rounded-xl p-4 shadow-sm mb-4 space-y-3">
         <select
@@ -131,15 +165,30 @@ export default function AddExpense() {
             setInterestAmount('')
           }}
         >
-          <option value="">Выберите счёт...</option>
-          {accounts.map((a) => {
-            return (
-              <option key={a.id} value={a.id}>
-                {a.icon} {a.name} — {formatCurrency(a.balance)}
-              </option>
-            )
-          })}
+          <option value="">{type === 'transfer' ? 'Откуда' : 'Выберите счёт...'}</option>
+          {accounts.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.icon} {a.name} — {formatCurrency(a.balance)}
+            </option>
+          ))}
         </select>
+
+        {type === 'transfer' && (
+          <select
+            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm"
+            value={transferToAccountId ?? ''}
+            onChange={(e) => setTransferToAccountId(Number(e.target.value) || null)}
+          >
+            <option value="">Куда</option>
+            {accounts
+              .filter((a) => a.id !== accountId)
+              .map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.icon} {a.name} — {formatCurrency(a.balance)}
+                </option>
+              ))}
+          </select>
+        )}
 
         <input
           type="date"
@@ -155,19 +204,23 @@ export default function AddExpense() {
           className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm"
         />
 
-        <div className="relative">
-          <input
-            placeholder="Место покупки"
-            value={place}
-            onChange={(e) => setPlace(e.target.value)}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm"
-          />
-          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">
-            { place.length }/30
-          </span>
-        </div>
-        {placeError && (
-          <p className="text-red-500 text-xs mt-1">{ placeError }</p>
+        {type !== 'transfer' && (
+          <>
+            <div className="relative">
+              <input
+                placeholder="Место покупки"
+                value={place}
+                onChange={(e) => setPlace(e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm"
+              />
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">
+                { place.length }/30
+              </span>
+            </div>
+            {placeError && (
+              <p className="text-red-500 text-xs mt-1">{ placeError }</p>
+            )}
+          </>
         )}
 
         {isLoanType && (
@@ -198,10 +251,16 @@ export default function AddExpense() {
 
       <button
         onClick={handleSubmit}
-        disabled={saving || !getTotalAmount() || !categoryId || !accountId || !!placeError}
+        disabled={saving || !getTotalAmount() || !isFormValid() || !!placeError}
         className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold text-sm disabled:opacity-50"
       >
-        {saving ? 'Сохранение...' : type === 'expense' ? 'Записать расход' : 'Записать доход'}
+        {saving
+          ? 'Сохранение...'
+          : type === 'transfer'
+            ? 'Перевести'
+            : type === 'expense'
+              ? 'Записать расход'
+              : 'Записать доход'}
       </button>
     </div>
   )

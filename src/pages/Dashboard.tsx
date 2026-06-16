@@ -24,7 +24,7 @@ export default function Dashboard() {
   const expensesByCat: Record<number, number> = {}
   for (const t of transactions) {
     if (t.type === 'expense') {
-      expensesByCat[t.categoryId] = (expensesByCat[t.categoryId] ?? 0) + t.amount
+      expensesByCat[t.categoryId!] = (expensesByCat[t.categoryId!] ?? 0) + t.amount
     }
   }
 
@@ -115,13 +115,21 @@ export default function Dashboard() {
               const account = accounts.find((a) => a.id === tx.accountId)
               return (
                 <div key={tx.id} className="flex items-center gap-3 text-sm">
-                  <span className="text-lg">{cat?.icon ?? '📦'}</span>
+                  <span className="text-lg">{tx.type === 'transfer' ? '🔄' : (cat?.icon ?? '📦')}</span>
                   <div className="flex-1 min-w-0">
-                    <div className="truncate font-medium">{cat?.name ?? '—'}{tx.description ? `, ${tx.description}` : ''}</div>
-                    <div className="text-xs text-gray-400">{dayjs(tx.date).format('D MMM')} · {account?.name}</div>
+                    <div className="truncate font-medium">
+                      {tx.type === 'transfer'
+                        ? `Перевод${tx.description ? `, ${tx.description}` : ''}`
+                        : `${cat?.name ?? '—'}${tx.description ? `, ${tx.description}` : ''}`}
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      {dayjs(tx.date).format('D MMM')} · {tx.type === 'transfer'
+                        ? `${account?.name} → ${accounts.find((a) => a.id === tx.transferToAccountId)?.name}`
+                        : account?.name}
+                    </div>
                   </div>
-                  <span className={`font-semibold shrink-0 ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                    {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
+                  <span className={`font-semibold shrink-0 ${tx.type === 'transfer' ? 'text-blue-600' : tx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                    {tx.type === 'transfer' ? '' : tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
                   </span>
                 </div>
               )
