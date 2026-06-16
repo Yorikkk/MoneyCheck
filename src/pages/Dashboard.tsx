@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import dayjs from 'dayjs'
-import { useTransactionsByMonth, useAccounts, useCategories, useDebts } from '@/hooks/useDb'
+import { useTransactionsByMonth, useAccounts, useCategories, useDebts, useAccountTypes } from '@/hooks/useDb'
 import { formatCurrency } from '@/lib/utils'
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
 
@@ -16,7 +16,16 @@ export default function Dashboard() {
   const categories = useCategories() ?? []
   const debts = useDebts('active') ?? []
 
-  const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0)
+  const accountTypes = useAccountTypes() ?? []
+
+  const typeLoanMap = new Map(accountTypes.map((t) => [t.id!, t.isLoan]))
+  const assetsBalance = accounts
+    .filter((a) => !typeLoanMap.get(a.typeId))
+    .reduce((s, a) => s + a.balance, 0)
+  const liabilitiesBalance = accounts
+    .filter((a) => typeLoanMap.get(a.typeId))
+    .reduce((s, a) => s + a.balance, 0)
+  const maxBalance = Math.max(assetsBalance, liabilitiesBalance, 1)
   const incomeTotal = transactions.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0)
   const expenseTotal = transactions.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
   const recentTx = [...transactions].slice(0, 5)
@@ -50,10 +59,26 @@ export default function Dashboard() {
     <div className="space-y-4">
       <div className="flex items-center justify-between bg-white rounded-xl p-3 shadow-sm">
         <button onClick={prevMonth} className="text-blue-600 text-lg px-2">◀</button>
-        <div className="text-center">
+        <div className="flex-1 text-center">
           <div className="font-semibold">{MONTHS[month]} {year}</div>
-          <div className="text-2xl font-bold">{formatCurrency(totalBalance)}</div>
-          <div className="text-xs text-gray-400">Общий баланс</div>
+          <div className="w-full space-y-1.5 mt-1">
+            <div className="w-full h-7 bg-blue-100 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-blue-600 rounded-full flex items-center px-3"
+                style={{ width: `${(assetsBalance / maxBalance) * 100}%` }}
+              >
+                <span className="text-white text-sm font-bold">{formatCurrency(assetsBalance)}</span>
+              </div>
+            </div>
+            <div className="w-full h-7 bg-red-100 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-red-600 rounded-full flex items-center px-3"
+                style={{ width: `${(liabilitiesBalance / maxBalance) * 100}%` }}
+              >
+                <span className="text-white text-sm font-bold">{formatCurrency(liabilitiesBalance)}</span>
+              </div>
+            </div>
+          </div>
         </div>
         <button onClick={nextMonth} className="text-blue-600 text-lg px-2">▶</button>
       </div>
