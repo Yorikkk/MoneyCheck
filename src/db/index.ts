@@ -39,6 +39,7 @@ export {
   addAccount,
   updateAccount,
   deleteAccount,
+  reorderAccounts,
 } from './accounts'
 export {
   getDebts,

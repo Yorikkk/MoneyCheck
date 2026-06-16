@@ -56,6 +56,7 @@ export interface Account {
   icon: string
   color: string
   familyMemberId: number
+  order: number
   createdAt: Date
 }
 
@@ -121,6 +122,22 @@ db.version(3).stores({
   accounts: '++id, familyMemberId',
   debts: '++id, status, familyMemberId',
   debtPayments: '++id, debtId',
+})
+
+db.version(4).stores({
+  transactions: '++id, date, categoryId, type, accountId',
+  categories: '++id, type, order',
+  budgets: '++id, [month+year]',
+  familyMembers: '++id',
+  accountTypes: '++id, order',
+  accounts: '++id, familyMemberId, order',
+  debts: '++id, status, familyMemberId',
+  debtPayments: '++id, debtId',
+}).upgrade(async (tx) => {
+  let i = 0
+  await tx.table('accounts').each((account: Account) => {
+    tx.table('accounts').update(account.id!, { order: i++ })
+  })
 })
 
 export { db }

@@ -1,11 +1,58 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
+import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import { useAccounts, useAccountTypes, useFamilyMembers } from '@/hooks/useDb'
-import { addAccount, updateAccount, deleteAccount } from '@/db'
+import { addAccount, updateAccount, deleteAccount, reorderAccounts } from '@/db'
 import type { Account } from '@/db'
 import { ColorPicker } from '@/components/ui/ColorPicker'
 import { formatCurrency } from '@/lib/utils'
 
 const CURRENCIES = ['RUB', 'USD', 'EUR', 'CNY', 'KZT', 'UZS', 'GBP', 'TRY']
+
+function SortableAccount({
+  account,
+  onEdit,
+  onDelete,
+  getTypeName,
+  getMemberName,
+}: {
+  account: Account
+  onEdit: () => void
+  onDelete: () => void
+  getTypeName: (id: number) => string
+  getMemberName: (id: number) => string
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: account.id! })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : undefined,
+    position: (isDragging ? 'relative' : undefined) as React.CSSProperties['position'],
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} className="bg-white rounded-xl p-3 shadow-sm flex items-center gap-3">
+      <button {...attributes} {...listeners} className="text-gray-300 cursor-grab active:cursor-grabbing text-lg px-1 touch-none">⠿</button>
+      <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-lg shrink-0" style={{ backgroundColor: account.color }}>
+        {account.icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="font-medium truncate">{account.name}</div>
+        <div className="text-xs text-gray-500">{getTypeName(account.typeId)} · {getMemberName(account.familyMemberId)}</div>
+      </div>
+      <div className="text-right shrink-0">
+        <div className="font-semibold text-sm">{formatCurrency(account.balance)}</div>
+        <div className="text-xs text-gray-400">{account.currency}</div>
+      </div>
+      <button onClick={onEdit} className="text-gray-400 text-sm px-1">✏️</button>
+      <button onClick={onDelete} className="text-gray-400 text-sm px-1">🗑️</button>
+    </div>
+  )
+}
 
 export default function AccountsManager({ onBack }: { onBack: () => void }) {
   const accounts = useAccounts() ?? []
@@ -13,6 +60,10 @@ export default function AccountsManager({ onBack }: { onBack: () => void }) {
   const familyMembers = useFamilyMembers() ?? []
   const [edit, setEdit] = useState<Partial<Account> | null>(null)
   const [saving, setSaving] = useState(false)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  )
 
   async function handleSave() {
     if (!edit || !edit.name?.trim() || !edit.typeId) return
@@ -36,6 +87,7 @@ export default function AccountsManager({ onBack }: { onBack: () => void }) {
         icon: edit.icon || '🏦',
         color: edit.color || '#2196F3',
         familyMemberId: edit.familyMemberId || (familyMembers[0]?.id ?? 0),
+        order: accounts.length,
       })
     }
     setEdit(null)
@@ -53,6 +105,20 @@ export default function AccountsManager({ onBack }: { onBack: () => void }) {
   function getMemberName(memberId: number) {
     return familyMembers.find((m) => m.id === memberId)?.name || '—'
   }
+
+  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const oldIndex = accounts.findIndex((a) => a.id === active.id)
+    const newIndex = accounts.findIndex((a) => a.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+
+    const reordered = [...accounts]
+    const [moved] = reordered.splice(oldIndex, 1)
+    reordered.splice(newIndex, 0, moved)
+    await reorderAccounts(reordered.map((a) => a.id!))
+  }, [accounts])
 
   return (
     <div>
@@ -126,25 +192,22 @@ export default function AccountsManager({ onBack }: { onBack: () => void }) {
         </div>
       )}
 
-      <div className="space-y-2">
-        {accounts.map((a) => (
-          <div key={a.id} className="bg-white rounded-xl p-3 shadow-sm flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-lg" style={{ backgroundColor: a.color }}>
-              {a.icon}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="font-medium truncate">{a.name}</div>
-              <div className="text-xs text-gray-500">{getTypeName(a.typeId)} · {getMemberName(a.familyMemberId)}</div>
-            </div>
-            <div className="text-right">
-              <div className="font-semibold text-sm">{formatCurrency(a.balance)}</div>
-              <div className="text-xs text-gray-400">{a.currency}</div>
-            </div>
-            <button onClick={() => setEdit(a)} className="text-gray-400 text-sm px-1">✏️</button>
-            <button onClick={() => a.id && handleDelete(a.id)} className="text-gray-400 text-sm px-1">🗑️</button>
+      <DndContext sensors={sensors} onDragEnd={handleDragEnd} modifiers={[restrictToVerticalAxis]}>
+        <SortableContext items={accounts.map((a) => a.id!)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-2">
+            {accounts.map((a) => (
+              <SortableAccount
+                key={a.id}
+                account={a}
+                onEdit={() => setEdit(a)}
+                onDelete={() => a.id && handleDelete(a.id)}
+                getTypeName={getTypeName}
+                getMemberName={getMemberName}
+              />
+            ))}
           </div>
-        ))}
-      </div>
+        </SortableContext>
+      </DndContext>
 
       <button onClick={() => setEdit({ name: '', icon: '🏦', color: '#2196F3', currency: 'RUB', balance: 0, familyMemberId: familyMembers[0]?.id })} className="w-full mt-4 py-3 rounded-xl border-2 border-dashed border-gray-300 text-gray-500 text-sm">
         ＋ Добавить счёт

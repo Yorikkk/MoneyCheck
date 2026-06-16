@@ -54,7 +54,7 @@ export function useAccountTypes() {
 
 export function useAccounts() {
   return useLiveQuery(() =>
-    db.accounts.toArray()
+    db.accounts.orderBy('order').toArray()
   , [])
 }
 
