@@ -31,8 +31,14 @@ export default function AddExpense() {
   const selectedType = accountTypes.find((t) => t.id === selectedAccount?.typeId)
   const isLoanType = selectedType?.isLoan ?? false
 
+  const selectedDestAccount = type === 'transfer' ? accounts.find((a) => a.id === transferToAccountId) : undefined
+  const selectedDestType = selectedDestAccount ? accountTypes.find((t) => t.id === selectedDestAccount?.typeId) : undefined
+  const isDestLoanType = selectedDestType?.isLoan ?? false
+
+  const showLoanFields = type !== 'transfer' ? isLoanType : isDestLoanType
+
   function getTotalAmount(): number {
-    if (isLoanType && principalAmount && interestAmount) {
+    if (showLoanFields && principalAmount && interestAmount) {
       return Number(principalAmount) + Number(interestAmount)
     }
     return Number(amount) || 0
@@ -59,10 +65,16 @@ export default function AddExpense() {
         date: new Date(date),
         type: 'transfer',
         transferToAccountId: transferToAccountId!,
+        principalAmount: isDestLoanType ? (Number(principalAmount) || null) : null,
+        interestAmount: isDestLoanType ? (Number(interestAmount) || null) : null,
       })
       await updateAccount(accountId!, { balance: selectedAccount!.balance - total })
       const toAccount = accounts.find((a) => a.id === transferToAccountId)!
-      await updateAccount(transferToAccountId!, { balance: toAccount.balance + total })
+      if (isDestLoanType && Number(principalAmount)) {
+        await updateAccount(transferToAccountId!, { balance: toAccount.balance - Number(principalAmount) })
+      } else {
+        await updateAccount(transferToAccountId!, { balance: toAccount.balance + total })
+      }
     } else {
       const txData = {
         amount: total,
@@ -72,14 +84,14 @@ export default function AddExpense() {
         familyMemberId: selectedAccount!.familyMemberId,
         date: new Date(date),
         type,
-        principalAmount: isLoanType ? (Number(principalAmount) || null) : null,
-        interestAmount: isLoanType ? (Number(interestAmount) || null) : null,
+        principalAmount: showLoanFields ? (Number(principalAmount) || null) : null,
+        interestAmount: showLoanFields ? (Number(interestAmount) || null) : null,
       }
 
       await addTransaction(txData)
       if (type === 'income') {
         await updateAccount(accountId!, { balance: selectedAccount!.balance + total })
-      } else if (isLoanType && Number(principalAmount)) {
+      } else if (showLoanFields && Number(principalAmount)) {
         await updateAccount(accountId!, { balance: selectedAccount!.balance - Number(principalAmount) })
       } else {
         await updateAccount(accountId!, { balance: selectedAccount!.balance - total })
@@ -109,7 +121,7 @@ export default function AddExpense() {
         {tabs.map(({ key, label }) => (
           <button
             key={key}
-            onClick={() => { setType(key); setCategoryId(null); setTransferToAccountId(null) }}
+            onClick={() => { setType(key); setCategoryId(null); setTransferToAccountId(null); setPrincipalAmount(''); setInterestAmount('') }}
             className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
               type === key ? 'bg-white text-blue-600 shadow-sm font-bold' : 'text-gray-500'
             }`}
@@ -119,19 +131,46 @@ export default function AddExpense() {
         ))}
       </div>
 
-      <div className="bg-white rounded-xl p-4 shadow-sm mb-4">
-        <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-2xl">₽</span>
-          <input
-            type="number"
-            inputMode="decimal"
-            placeholder="0"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            className="w-full text-4xl font-bold text-right py-4 px-4 outline-none"
-          />
+      {type === 'transfer' && isDestLoanType ? (
+        <div className="bg-white rounded-xl p-4 shadow-sm mb-4">
+          <div className="bg-orange-50 rounded-lg p-3 space-y-2">
+            <div className="text-xs text-orange-600 font-medium">Платеж по кредиту</div>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                placeholder="Тело кредита"
+                value={principalAmount}
+                onChange={(e) => setPrincipalAmount(e.target.value)}
+                className="flex-1 border border-orange-200 rounded-lg px-3 py-2 text-sm"
+              />
+              <input
+                type="number"
+                placeholder="Проценты"
+                value={interestAmount}
+                onChange={(e) => setInterestAmount(e.target.value)}
+                className="flex-1 border border-orange-200 rounded-lg px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="text-xs text-orange-500 text-right">
+              Итого: {formatCurrency((Number(principalAmount) || 0) + (Number(interestAmount) || 0))}
+            </div>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="bg-white rounded-xl p-4 shadow-sm mb-4">
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-2xl">₽</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              placeholder="0"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="w-full text-4xl font-bold text-right py-4 px-4 outline-none"
+            />
+          </div>
+        </div>
+      )}
 
       {type !== 'transfer' && (
         <div className="mb-4">
@@ -177,7 +216,7 @@ export default function AddExpense() {
           <select
             className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm"
             value={transferToAccountId ?? ''}
-            onChange={(e) => setTransferToAccountId(Number(e.target.value) || null)}
+            onChange={(e) => { setTransferToAccountId(Number(e.target.value) || null); setPrincipalAmount(''); setInterestAmount('') }}
           >
             <option value="">Куда</option>
             {accounts
@@ -223,7 +262,7 @@ export default function AddExpense() {
           </>
         )}
 
-        {isLoanType && (
+        {type !== 'transfer' && isLoanType && (
           <div className="bg-orange-50 rounded-lg p-3 space-y-2">
             <div className="text-xs text-orange-600 font-medium">Платеж по кредиту</div>
             <div className="flex gap-2">
