@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import dayjs from 'dayjs'
-import { useTransactionsByMonth, useAccounts, useCategories, useDebts, useAccountTypes } from '@/hooks/useDb'
+import { useTransactionsByMonth, useAccounts, useCategories, useDebts, useAccountTypes, useBanks } from '@/hooks/useDb'
 import { formatCurrency } from '@/lib/utils'
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
 
@@ -17,6 +17,12 @@ export default function Dashboard() {
   const debts = useDebts('active') ?? []
 
   const accountTypes = useAccountTypes() ?? []
+  const banks = useBanks() ?? []
+
+  function getBankLabel(bankId: number) {
+    const bank = banks.find((b) => b.id === bankId)
+    return bank ? `${bank.icon} ${bank.name}` : ''
+  }
 
   const typeLoanMap = new Map(accountTypes.map((t) => [t.id!, t.isLoan]))
   const assetsBalance = accounts
@@ -150,7 +156,7 @@ export default function Dashboard() {
                     <div className="text-xs text-gray-400">
                       {dayjs(tx.date).format('D MMM')} · {tx.type === 'transfer'
                         ? `${account?.name} → ${accounts.find((a) => a.id === tx.transferToAccountId)?.name}`
-                        : account?.name}
+                        : `${account?.name} · ${getBankLabel(account?.bankId ?? 0)}`}
                     </div>
                   </div>
                   <span className={`font-semibold shrink-0 ${tx.type === 'transfer' ? 'text-blue-600' : tx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>

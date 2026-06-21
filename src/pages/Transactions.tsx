@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import dayjs from 'dayjs'
 import { useLocation } from 'react-router-dom'
-import { useAllTransactions, useAccounts, useCategories, useRootCategories, useSubcategories } from '@/hooks/useDb'
+import { useAllTransactions, useAccounts, useCategories, useRootCategories, useSubcategories, useBanks } from '@/hooks/useDb'
 import { deleteTransaction, updateTransaction, updateAccount, hasSubcategories } from '@/db'
 import { formatCurrency } from '@/lib/utils'
 import type { Transaction } from '@/db'
@@ -13,6 +13,12 @@ export default function Transactions() {
   const allTx = useAllTransactions() ?? []
   const accounts = useAccounts() ?? []
   const categories = useCategories() ?? []
+  const banks = useBanks() ?? []
+
+  function getBankLabel(bankId: number) {
+    const bank = banks.find((b) => b.id === bankId)
+    return bank ? bank.name : ''
+  }
 
   const [filterAccount, setFilterAccount] = useState<number | null>(locationState?.filterAccount ?? null)
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense' | 'transfer'>('all')
@@ -85,7 +91,7 @@ export default function Transactions() {
         >
           <option value="">Все счета</option>
           {accounts.map((a) => (
-            <option key={a.id} value={a.id}>{a.icon} {a.name}</option>
+            <option key={a.id} value={a.id}>{a.icon} {a.name} · {getBankLabel(a.bankId)}</option>
           ))}
         </select>
         <select
@@ -148,7 +154,7 @@ export default function Transactions() {
                         <span className="text-lg">{cat?.icon ?? '📦'}</span>
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium truncate">{cat?.name ?? '—'}{tx.description ? `, ${tx.description}` : ''}</div>
-                          <div className="text-xs text-gray-400 truncate">{account?.name}</div>
+                          <div className="text-xs text-gray-400 truncate">{account?.name} · {getBankLabel(account?.bankId ?? 0)}</div>
                           {(tx.mcc ?? cat?.mcc) && (
                             <div className="text-xs text-gray-400 font-mono">MCC {tx.mcc ?? cat?.mcc}</div>
                           )}

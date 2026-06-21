@@ -53,10 +53,19 @@ export interface AccountType {
   isLoan: boolean
 }
 
+export interface Bank {
+  id?: number
+  name: string
+  icon: string
+  color: string
+  order: number
+}
+
 export interface Account {
   id?: number
   name: string
   typeId: number
+  bankId: number
   currency: string
   balance: number
   icon: string
@@ -99,6 +108,7 @@ const db = new Dexie('MoneyCheckDB') as Dexie & {
   accounts: EntityTable<Account, 'id'>
   debts: EntityTable<Debt, 'id'>
   debtPayments: EntityTable<DebtPayment, 'id'>
+  banks: EntityTable<Bank, 'id'>
 }
 
 db.version(1).stores({
@@ -177,6 +187,28 @@ db.version(7).stores({
   accounts: '++id, familyMemberId, order',
   debts: '++id, status, familyMemberId',
   debtPayments: '++id, debtId',
+})
+
+db.version(8).stores({
+  transactions: '++id, date, categoryId, type, accountId, transferToAccountId',
+  categories: '++id, type, order, parentId',
+  budgets: '++id, [month+year]',
+  familyMembers: '++id',
+  accountTypes: '++id, order',
+  accounts: '++id, familyMemberId, order, bankId',
+  debts: '++id, status, familyMemberId',
+  debtPayments: '++id, debtId',
+  banks: '++id, order',
+}).upgrade(async (tx) => {
+  const banksCount = await tx.table('banks').count()
+  if (banksCount === 0) return
+  const firstBank = await tx.table('banks').orderBy('order').first()
+  if (!firstBank) return
+  await tx.table('accounts').each((account: Account) => {
+    if (!(account as any).bankId) {
+      tx.table('accounts').update(account.id!, { bankId: firstBank.id })
+    }
+  })
 })
 
 export { db }

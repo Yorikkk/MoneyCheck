@@ -1,15 +1,17 @@
 import { useState } from 'react'
 import CategoriesManager from '@/components/settings/CategoriesManager'
 import AccountTypesManager from '@/components/settings/AccountTypesManager'
+import BanksManager from '@/components/settings/BanksManager'
 import AccountsManager from '@/components/settings/AccountsManager'
 import FamilyMembersManager from '@/components/settings/FamilyMembersManager'
 import BudgetsManager from '@/components/settings/BudgetsManager'
 
-type View = 'main' | 'categories' | 'accountTypes' | 'accounts' | 'familyMembers' | 'budgets'
+type View = 'main' | 'categories' | 'accountTypes' | 'banks' | 'accounts' | 'familyMembers' | 'budgets'
 
 const menuItems: { view: View; icon: string; label: string; desc: string }[] = [
   { view: 'categories', icon: '📂', label: 'Категории', desc: 'Расходы и доходы' },
   { view: 'accountTypes', icon: '🏷️', label: 'Типы счетов', desc: 'Наличные, кредиты, ипотека...' },
+  { view: 'banks', icon: '🏛️', label: 'Банки', desc: 'Сбербанк, Т-Банк, Альфа...' },
   { view: 'accounts', icon: '💰', label: 'Счета', desc: 'Банковские счета, кошельки' },
   { view: 'familyMembers', icon: '👨‍👩‍👧‍👦', label: 'Члены семьи', desc: 'Участники учёта' },
   { view: 'budgets', icon: '🎯', label: 'Бюджеты', desc: 'Лимиты по категориям' },
@@ -20,6 +22,7 @@ export default function Settings() {
 
   if (view === 'categories') return <CategoriesManager onBack={() => setView('main')} />
   if (view === 'accountTypes') return <AccountTypesManager onBack={() => setView('main')} />
+  if (view === 'banks') return <BanksManager onBack={() => setView('main')} />
   if (view === 'accounts') return <AccountsManager onBack={() => setView('main')} />
   if (view === 'familyMembers') return <FamilyMembersManager onBack={() => setView('main')} />
   if (view === 'budgets') return <BudgetsManager onBack={() => setView('main')} />

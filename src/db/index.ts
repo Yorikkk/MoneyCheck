@@ -7,6 +7,7 @@ export type {
   FamilyMember,
   AccountType,
   Account,
+  Bank,
   Debt,
   DebtPayment,
 } from './db'
@@ -34,6 +35,12 @@ export {
   updateAccountType,
   deleteAccountType,
 } from './accountTypes'
+export {
+  getBanks,
+  addBank,
+  updateBank,
+  deleteBank,
+} from './banks'
 export {
   getAccounts,
   getAccountsByFamilyMember,

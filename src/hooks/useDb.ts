@@ -75,6 +75,12 @@ export function useAccountTypes() {
   , [])
 }
 
+export function useBanks() {
+  return useLiveQuery(() =>
+    db.banks.orderBy('order').toArray()
+  , [])
+}
+
 export function useAccounts() {
   return useLiveQuery(() =>
     db.accounts.orderBy('order').toArray()

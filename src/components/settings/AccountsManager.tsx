@@ -3,7 +3,7 @@ import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } f
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
-import { useAccounts, useAccountTypes, useFamilyMembers } from '@/hooks/useDb'
+import { useAccounts, useAccountTypes, useFamilyMembers, useBanks } from '@/hooks/useDb'
 import { addAccount, updateAccount, deleteAccount, reorderAccounts } from '@/db'
 import type { Account } from '@/db'
 import { ColorPicker } from '@/components/ui/ColorPicker'
@@ -17,12 +17,14 @@ function SortableAccount({
   onDelete,
   getTypeName,
   getMemberName,
+  getBankName,
 }: {
   account: Account
   onEdit: () => void
   onDelete: () => void
   getTypeName: (id: number) => string
   getMemberName: (id: number) => string
+  getBankName: (id: number) => string
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: account.id! })
 
@@ -42,7 +44,7 @@ function SortableAccount({
       </div>
       <div className="flex-1 min-w-0">
         <div className="font-medium truncate">{account.name}</div>
-        <div className="text-xs text-gray-500">{getTypeName(account.typeId)} · {getMemberName(account.familyMemberId)}</div>
+        <div className="text-xs text-gray-500">{getBankName(account.bankId)} · {getTypeName(account.typeId)} · {getMemberName(account.familyMemberId)}</div>
       </div>
       <div className="text-right shrink-0">
         <div className="font-semibold text-sm">{formatCurrency(account.balance)}</div>
@@ -58,6 +60,7 @@ export default function AccountsManager({ onBack }: { onBack: () => void }) {
   const accounts = useAccounts() ?? []
   const accountTypes = useAccountTypes() ?? []
   const familyMembers = useFamilyMembers() ?? []
+  const banks = useBanks() ?? []
   const [edit, setEdit] = useState<Partial<Account> | null>(null)
   const [saving, setSaving] = useState(false)
 
@@ -66,12 +69,13 @@ export default function AccountsManager({ onBack }: { onBack: () => void }) {
   )
 
   async function handleSave() {
-    if (!edit || !edit.name?.trim() || !edit.typeId) return
+    if (!edit || !edit.name?.trim() || !edit.typeId || !edit.bankId) return
     setSaving(true)
     if (edit.id) {
       await updateAccount(edit.id, {
         name: edit.name.trim(),
         typeId: edit.typeId,
+        bankId: edit.bankId,
         currency: edit.currency || 'RUB',
         balance: edit.balance ?? 0,
         icon: edit.icon || '🏦',
@@ -82,6 +86,7 @@ export default function AccountsManager({ onBack }: { onBack: () => void }) {
       await addAccount({
         name: edit.name.trim(),
         typeId: edit.typeId,
+        bankId: edit.bankId,
         currency: edit.currency || 'RUB',
         balance: edit.balance ?? 0,
         icon: edit.icon || '🏦',
@@ -104,6 +109,11 @@ export default function AccountsManager({ onBack }: { onBack: () => void }) {
 
   function getMemberName(memberId: number) {
     return familyMembers.find((m) => m.id === memberId)?.name || '—'
+  }
+
+  function getBankName(bankId: number) {
+    const bank = banks.find((b) => b.id === bankId)
+    return bank ? `${bank.icon} ${bank.name}` : '—'
   }
 
   const handleDragEnd = useCallback(async (event: DragEndEvent) => {
@@ -147,6 +157,16 @@ export default function AccountsManager({ onBack }: { onBack: () => void }) {
             value={edit.color || '#2196F3'}
             onChange={(c) => setEdit({ ...edit, color: c })}
           />
+          <select
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+            value={edit.bankId || ''}
+            onChange={(e) => setEdit({ ...edit, bankId: Number(e.target.value) })}
+          >
+            <option value="">Банк...</option>
+            {banks.map((b) => (
+              <option key={b.id} value={b.id}>{b.icon} {b.name}</option>
+            ))}
+          </select>
           <select
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
             value={edit.typeId || ''}
@@ -203,13 +223,14 @@ export default function AccountsManager({ onBack }: { onBack: () => void }) {
                 onDelete={() => a.id && handleDelete(a.id)}
                 getTypeName={getTypeName}
                 getMemberName={getMemberName}
+                getBankName={getBankName}
               />
             ))}
           </div>
         </SortableContext>
       </DndContext>
 
-      <button onClick={() => setEdit({ name: '', icon: '🏦', color: '#2196F3', currency: 'RUB', balance: 0, familyMemberId: familyMembers[0]?.id })} className="w-full mt-4 py-3 rounded-xl border-2 border-dashed border-gray-300 text-gray-500 text-sm">
+      <button onClick={() => setEdit({ name: '', icon: '🏦', color: '#2196F3', currency: 'RUB', balance: 0, bankId: banks[0]?.id, familyMemberId: familyMembers[0]?.id })} className="w-full mt-4 py-3 rounded-xl border-2 border-dashed border-gray-300 text-gray-500 text-sm">
         ＋ Добавить счёт
       </button>
     </div>

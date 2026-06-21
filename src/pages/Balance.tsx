@@ -1,10 +1,16 @@
 import { useNavigate } from 'react-router-dom'
-import { useAccounts } from '@/hooks/useDb'
+import { useAccounts, useBanks } from '@/hooks/useDb'
 import { formatCurrency } from '@/lib/utils'
 
 export default function Balance() {
   const navigate = useNavigate()
   const accounts = useAccounts() ?? []
+  const banks = useBanks() ?? []
+
+  function getBankLabel(bankId: number) {
+    const bank = banks.find((b) => b.id === bankId)
+    return bank ? `${bank.icon} ${bank.name}` : ''
+  }
 
   return (
     <div>
@@ -24,6 +30,7 @@ export default function Balance() {
             <span className="text-2xl">{account.icon}</span>
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium">{account.name}</div>
+              <div className="text-xs text-gray-400">{getBankLabel(account.bankId)}</div>
             </div>
             <div className={`text-sm font-semibold ${account.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {formatCurrency(account.balance)}

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
-import { useRootCategories, useSubcategories, useAccounts, useAccountTypes } from '@/hooks/useDb'
+import { useRootCategories, useSubcategories, useAccounts, useAccountTypes, useBanks } from '@/hooks/useDb'
 import { addTransaction, updateAccount, hasSubcategories } from '@/db'
 import type { Category } from '@/db'
 import { formatCurrency } from '@/lib/utils'
@@ -33,6 +33,12 @@ export default function AddExpense() {
   const selectedCategory = (browseParent ? subCategories : rootCategories).find((c) => c.id === categoryId)
   const accounts = useAccounts() ?? []
   const accountTypes = useAccountTypes() ?? []
+  const banks = useBanks() ?? []
+
+  function getBankLabel(bankId: number) {
+    const bank = banks.find((b) => b.id === bankId)
+    return bank ? bank.name : ''
+  }
 
   const selectedAccount = accounts.find((a) => a.id === accountId)
   const selectedType = accountTypes.find((t) => t.id === selectedAccount?.typeId)
@@ -252,6 +258,7 @@ export default function AddExpense() {
                 >
                   <span className="text-2xl">{a.icon}</span>
                   <span className="text-xs truncate w-full text-center">{a.name}</span>
+                  <span className="text-[10px] text-gray-400 truncate w-full text-center">{getBankLabel(a.bankId)}</span>
                   <span className="text-[10px] text-gray-400 truncate w-full text-center">{formatCurrency(a.balance)}</span>
                 </button>
               ))}
