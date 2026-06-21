@@ -1,3 +1,6 @@
+#Требование
+Все рассуждения в субагентах должны идти на русском языке!
+
 # MoneyCheck
 
 Full client-side PWA. All data in IndexedDB (Dexie). No backend, no API keys, no env.
