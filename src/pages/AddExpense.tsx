@@ -221,41 +221,76 @@ export default function AddExpense() {
         </div>
       )}
 
-      <div className="bg-white rounded-xl p-4 shadow-sm mb-4 space-y-3">
-        <select
-          className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm"
-          value={accountId ?? ''}
-          onChange={(e) => {
-            setAccountId(Number(e.target.value) || null)
-            setPrincipalAmount('')
-            setInterestAmount('')
-          }}
-        >
-          <option value="">{type === 'transfer' ? 'Откуда' : 'Выберите счёт...'}</option>
-          {accounts.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.icon} {a.name} — {formatCurrency(a.balance)}
-            </option>
-          ))}
-        </select>
-
-        {type === 'transfer' && (
-          <select
-            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm"
-            value={transferToAccountId ?? ''}
-            onChange={(e) => { setTransferToAccountId(Number(e.target.value) || null); setPrincipalAmount(''); setInterestAmount('') }}
-          >
-            <option value="">Куда</option>
-            {accounts
-              .filter((a) => a.id !== accountId)
-              .map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.icon} {a.name} — {formatCurrency(a.balance)}
-                </option>
+      {type === 'transfer' ? (
+        <>
+          <div className="mb-4">
+            <div className="text-sm text-gray-500 mb-2 font-medium">Откуда</div>
+            <div className="grid grid-cols-4 gap-2">
+              {accounts.map((a) => (
+                <button
+                  key={a.id}
+                  onClick={() => { setAccountId(a.id!); setPrincipalAmount(''); setInterestAmount('') }}
+                  className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-all ${
+                    accountId === a.id
+                      ? 'bg-blue-50 ring-2 ring-blue-500'
+                      : 'bg-white shadow-sm'
+                  }`}
+                >
+                  <span className="text-2xl">{a.icon}</span>
+                  <span className="text-xs truncate w-full text-center">{a.name}</span>
+                  <span className="text-[10px] text-gray-400 truncate w-full text-center">{formatCurrency(a.balance)}</span>
+                </button>
               ))}
-          </select>
-        )}
+            </div>
+          </div>
 
+          <div className="mb-4">
+            <div className="text-sm text-gray-500 mb-2 font-medium">Куда</div>
+            <div className="grid grid-cols-4 gap-2">
+              {accounts
+                .filter((a) => a.id !== accountId)
+                .map((a) => (
+                  <button
+                    key={a.id}
+                    onClick={() => { setTransferToAccountId(a.id!); setPrincipalAmount(''); setInterestAmount('') }}
+                    className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-all ${
+                      transferToAccountId === a.id
+                        ? 'bg-blue-50 ring-2 ring-blue-500'
+                        : 'bg-white shadow-sm'
+                    }`}
+                  >
+                    <span className="text-2xl">{a.icon}</span>
+                    <span className="text-xs truncate w-full text-center">{a.name}</span>
+                    <span className="text-[10px] text-gray-400 truncate w-full text-center">{formatCurrency(a.balance)}</span>
+                  </button>
+                ))}
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="mb-4">
+          <div className="text-sm text-gray-500 mb-2 font-medium">Счёт</div>
+          <div className="grid grid-cols-4 gap-2">
+            {accounts.map((a) => (
+              <button
+                key={a.id}
+                onClick={() => { setAccountId(a.id!); setPrincipalAmount(''); setInterestAmount('') }}
+                className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-all ${
+                  accountId === a.id
+                    ? 'bg-blue-50 ring-2 ring-blue-500'
+                    : 'bg-white shadow-sm'
+                }`}
+              >
+                <span className="text-2xl">{a.icon}</span>
+                <span className="text-xs truncate w-full text-center">{a.name}</span>
+                <span className="text-[10px] text-gray-400 truncate w-full text-center">{formatCurrency(a.balance)}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="bg-white rounded-xl p-4 shadow-sm mb-4 space-y-3">
         <input
           type="date"
           value={date}
