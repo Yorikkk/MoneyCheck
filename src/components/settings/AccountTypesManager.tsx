@@ -8,6 +8,7 @@ export default function AccountTypesManager({ onBack }: { onBack: () => void }) 
   const types = useAccountTypes() ?? []
   const [edit, setEdit] = useState<Partial<AccountType> | null>(null)
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
   async function handleSave() {
     if (!edit || !edit.name?.trim()) return
@@ -23,7 +24,12 @@ export default function AccountTypesManager({ onBack }: { onBack: () => void }) 
   }
 
   async function handleDelete(id: number) {
-    await deleteAccountType(id)
+    setError('')
+    try {
+      await deleteAccountType(id)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Ошибка удаления')
+    }
   }
 
   return (
@@ -32,6 +38,12 @@ export default function AccountTypesManager({ onBack }: { onBack: () => void }) 
         <button onClick={onBack} className="text-blue-600 text-lg">←</button>
         <h2 className="text-xl font-bold">Типы счетов</h2>
       </div>
+
+      {error && (
+        <div className="bg-red-50 text-red-600 text-sm rounded-lg p-3 mb-4">
+          {error}
+        </div>
+      )}
 
       {edit && (
         <div className="bg-white rounded-xl p-4 shadow-sm mb-4 space-y-3">
