@@ -2,6 +2,7 @@ export { db } from './db'
 export type {
   Transaction,
   Category,
+  CategoryTreeNode,
   Budget,
   FamilyMember,
   AccountType,
@@ -10,7 +11,7 @@ export type {
   DebtPayment,
 } from './db'
 
-export { getCategories, addCategory, updateCategory, deleteCategory } from './categories'
+export { getCategories, addCategory, updateCategory, deleteCategory, getCategoryTree, hasSubcategories } from './categories'
 export {
   addTransaction,
   getTransactionsByDateRange,

@@ -22,7 +22,11 @@ export interface Category {
   color: string
   type: 'income' | 'expense'
   order: number
+  parentId?: number
+  mcc?: number
 }
+
+export type CategoryTreeNode = Category & { children: CategoryTreeNode[] }
 
 export interface Budget {
   id?: number
@@ -144,6 +148,17 @@ db.version(4).stores({
 db.version(5).stores({
   transactions: '++id, date, categoryId, type, accountId, transferToAccountId',
   categories: '++id, type, order',
+  budgets: '++id, [month+year]',
+  familyMembers: '++id',
+  accountTypes: '++id, order',
+  accounts: '++id, familyMemberId, order',
+  debts: '++id, status, familyMemberId',
+  debtPayments: '++id, debtId',
+})
+
+db.version(6).stores({
+  transactions: '++id, date, categoryId, type, accountId, transferToAccountId',
+  categories: '++id, type, order, parentId',
   budgets: '++id, [month+year]',
   familyMembers: '++id',
   accountTypes: '++id, order',

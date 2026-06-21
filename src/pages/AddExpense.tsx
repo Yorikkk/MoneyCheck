@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
-import { useCategories, useAccounts, useAccountTypes } from '@/hooks/useDb'
-import { addTransaction, updateAccount } from '@/db'
+import { useRootCategories, useSubcategories, useAccounts, useAccountTypes } from '@/hooks/useDb'
+import { addTransaction, updateAccount, hasSubcategories } from '@/db'
+import type { Category } from '@/db'
 import { formatCurrency } from '@/lib/utils'
 
 type Tab = 'expense' | 'income' | 'transfer'
@@ -20,10 +21,15 @@ export default function AddExpense() {
   const [interestAmount, setInterestAmount] = useState('')
   const [saving, setSaving] = useState(false)
   const [place, setPlace] = useState('')
+  const [browseParent, setBrowseParent] = useState<Category | null>(null)
 
   const placeError = place.length > 30 ? 'Максимум 30 символов' : ''
 
-  const categories = useCategories(type === 'transfer' ? undefined : type) ?? []
+  const rootCategories = useRootCategories(type === 'transfer' ? undefined : type) ?? []
+  const subCategories = useSubcategories(browseParent?.id ?? null) ?? []
+  const categories = browseParent ? subCategories : rootCategories
+
+  const selectedCategory = (browseParent ? subCategories : rootCategories).find((c) => c.id === categoryId)
   const accounts = useAccounts() ?? []
   const accountTypes = useAccountTypes() ?? []
 
@@ -121,7 +127,7 @@ export default function AddExpense() {
         {tabs.map(({ key, label }) => (
           <button
             key={key}
-            onClick={() => { setType(key); setCategoryId(null); setTransferToAccountId(null); setPrincipalAmount(''); setInterestAmount('') }}
+            onClick={() => { setType(key); setCategoryId(null); setTransferToAccountId(null); setPrincipalAmount(''); setInterestAmount(''); setBrowseParent(null) }}
             className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
               type === key ? 'bg-white text-blue-600 shadow-sm font-bold' : 'text-gray-500'
             }`}
@@ -175,11 +181,27 @@ export default function AddExpense() {
       {type !== 'transfer' && (
         <div className="mb-4">
           <div className="text-sm text-gray-500 mb-2 font-medium">Категория</div>
+          {browseParent && (
+            <button
+              onClick={() => { setBrowseParent(null); setCategoryId(null) }}
+              className="text-sm text-blue-600 mb-2 flex items-center gap-1"
+            >
+              ← {browseParent.icon} {browseParent.name}
+            </button>
+          )}
           <div className="grid grid-cols-4 gap-2">
             {categories.map((cat) => (
               <button
                 key={cat.id}
-                onClick={() => setCategoryId(cat.id!)}
+                onClick={async () => {
+                  const hasSubs = await hasSubcategories(cat.id!)
+                  if (hasSubs) {
+                    setBrowseParent(cat)
+                    setCategoryId(null)
+                  } else {
+                    setCategoryId(cat.id!)
+                  }
+                }}
                 className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-all ${
                   categoryId === cat.id
                     ? 'bg-blue-50 ring-2 ring-blue-500'
@@ -191,6 +213,11 @@ export default function AddExpense() {
               </button>
             ))}
           </div>
+          {selectedCategory?.mcc && (
+            <div className="mt-2 text-xs text-gray-400 font-mono text-center">
+              MCC {selectedCategory.mcc}
+            </div>
+          )}
         </div>
       )}
 

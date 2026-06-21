@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect } from 'react'
 import dayjs from 'dayjs'
 import { useLocation } from 'react-router-dom'
-import { useAllTransactions, useAccounts, useCategories } from '@/hooks/useDb'
-import { deleteTransaction, updateTransaction, updateAccount } from '@/db'
+import { useAllTransactions, useAccounts, useCategories, useRootCategories, useSubcategories } from '@/hooks/useDb'
+import { deleteTransaction, updateTransaction, updateAccount, hasSubcategories } from '@/db'
 import { formatCurrency } from '@/lib/utils'
 import type { Transaction } from '@/db'
 
@@ -64,7 +64,6 @@ export default function Transactions() {
       <EditForm
         tx={editTx}
         accounts={accounts}
-        categories={categories}
         onSave={async (changes) => {
           await updateTransaction(editTx.id!, changes)
           setEditTx(null)
@@ -150,6 +149,9 @@ export default function Transactions() {
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium truncate">{cat?.name ?? '—'}{tx.description ? `, ${tx.description}` : ''}</div>
                           <div className="text-xs text-gray-400 truncate">{account?.name}</div>
+                          {cat?.mcc && (
+                            <div className="text-xs text-gray-400 font-mono">MCC {cat.mcc}</div>
+                          )}
                           {tx.principalAmount && (
                             <div className="text-xs text-orange-500">Тело: {formatCurrency(tx.principalAmount)}</div>
                           )}
@@ -179,11 +181,10 @@ export default function Transactions() {
 }
 
 function EditForm({
-  tx, accounts, categories, onSave, onCancel,
+  tx, accounts, onSave, onCancel,
 }: {
   tx: Transaction
   accounts: any[]
-  categories: any[]
   onSave: (changes: Partial<Transaction>) => Promise<void>
   onCancel: () => void
 }) {
@@ -193,6 +194,14 @@ function EditForm({
   const [date, setDate] = useState(dayjs(tx.date).format('YYYY-MM-DD'))
   const [description, setDescription] = useState(tx.description)
   const [saving, setSaving] = useState(false)
+  const [browseParent, setBrowseParent] = useState<any>(null)
+
+  const txType = tx.type === 'transfer' ? undefined : tx.type
+  const rootCategories = useRootCategories(txType) ?? []
+  const subCategories = browseParent ? (useSubcategories(browseParent.id!) ?? []) : []
+  const categories = browseParent ? subCategories : rootCategories
+
+  const selectedCategory = (browseParent ? subCategories : rootCategories).find((c) => c.id === categoryId)
 
   async function handleSave() {
     setSaving(true)
@@ -220,21 +229,53 @@ function EditForm({
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
         />
-        <select
-          className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white"
-          value={categoryId}
-          onChange={(e) => setCategoryId(Number(e.target.value))}
-        >
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
-          ))}
-        </select>
+        {txType && (
+          <div>
+            {browseParent && (
+              <button
+                onClick={() => setBrowseParent(null)}
+                className="text-sm text-blue-600 mb-2 flex items-center gap-1"
+              >
+                ← {browseParent.icon} {browseParent.name}
+              </button>
+            )}
+            <div className="grid grid-cols-4 gap-2">
+              {categories.map((cat: any) => (
+                <button
+                  key={cat.id}
+                  onClick={async () => {
+                    const hasSubs = await hasSubcategories(cat.id!)
+                    if (hasSubs) {
+                      setBrowseParent(cat)
+                    } else {
+                      setCategoryId(cat.id!)
+                      setBrowseParent(null)
+                    }
+                  }}
+                  className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-all ${
+                    categoryId === cat.id
+                      ? 'bg-blue-50 ring-2 ring-blue-500'
+                      : 'bg-white shadow-sm'
+                  }`}
+                >
+                  <span className="text-2xl">{cat.icon}</span>
+                  <span className="text-xs truncate w-full text-center">{cat.name}</span>
+                </button>
+              ))}
+            </div>
+            {selectedCategory?.mcc && (
+              <div className="mt-1 text-xs text-gray-400 font-mono text-center">
+                MCC {selectedCategory.mcc}
+              </div>
+            )}
+          </div>
+        )}
         <select
           className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white"
           value={accountId}
           onChange={(e) => setAccountId(Number(e.target.value))}
         >
-          {accounts.map((a) => (
+          {accounts.map((a: any) => (
             <option key={a.id} value={a.id}>{a.icon} {a.name}</option>
           ))}
         </select>

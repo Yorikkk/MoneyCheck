@@ -34,6 +34,29 @@ export function useCategories(type?: 'income' | 'expense') {
   }, [type])
 }
 
+export function useRootCategories(type?: 'income' | 'expense') {
+  return useLiveQuery(() => {
+    let coll = db.categories.orderBy('order')
+    coll = coll.filter((c) => !c.parentId) as typeof coll
+    if (type) coll = coll.filter((c) => c.type === type) as typeof coll
+    return coll.toArray()
+  }, [type])
+}
+
+export function useSubcategories(parentId: number | null) {
+  return useLiveQuery(() => {
+    if (parentId === null) return []
+    return db.categories.where('parentId').equals(parentId).sortBy('order')
+  }, [parentId])
+}
+
+export function useHasSubcategories(id: number) {
+  return useLiveQuery(async () => {
+    const count = await db.categories.where('parentId').equals(id).count()
+    return count > 0
+  }, [id])
+}
+
 export function useBudgets(month: number, year: number) {
   return useLiveQuery(() =>
     db.budgets.where({ month, year }).toArray()
