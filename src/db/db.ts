@@ -12,6 +12,7 @@ export interface Transaction {
   principalAmount?: number | null
   interestAmount?: number | null
   transferToAccountId?: number
+  mcc?: number
   createdAt: Date
 }
 
@@ -157,6 +158,17 @@ db.version(5).stores({
 })
 
 db.version(6).stores({
+  transactions: '++id, date, categoryId, type, accountId, transferToAccountId',
+  categories: '++id, type, order, parentId',
+  budgets: '++id, [month+year]',
+  familyMembers: '++id',
+  accountTypes: '++id, order',
+  accounts: '++id, familyMemberId, order',
+  debts: '++id, status, familyMemberId',
+  debtPayments: '++id, debtId',
+})
+
+db.version(7).stores({
   transactions: '++id, date, categoryId, type, accountId, transferToAccountId',
   categories: '++id, type, order, parentId',
   budgets: '++id, [month+year]',

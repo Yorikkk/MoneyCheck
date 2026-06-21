@@ -21,6 +21,7 @@ export default function AddExpense() {
   const [interestAmount, setInterestAmount] = useState('')
   const [saving, setSaving] = useState(false)
   const [place, setPlace] = useState('')
+  const [mcc, setMcc] = useState('')
   const [browseParent, setBrowseParent] = useState<Category | null>(null)
 
   const placeError = place.length > 30 ? 'Максимум 30 символов' : ''
@@ -92,6 +93,7 @@ export default function AddExpense() {
         type,
         principalAmount: showLoanFields ? (Number(principalAmount) || null) : null,
         interestAmount: showLoanFields ? (Number(interestAmount) || null) : null,
+        mcc: mcc ? Number(mcc) : undefined,
       }
 
       await addTransaction(txData)
@@ -111,6 +113,7 @@ export default function AddExpense() {
     setDescription('')
     setPrincipalAmount('')
     setInterestAmount('')
+    setMcc('')
     setSaving(false)
     navigate('/')
   }
@@ -127,7 +130,7 @@ export default function AddExpense() {
         {tabs.map(({ key, label }) => (
           <button
             key={key}
-            onClick={() => { setType(key); setCategoryId(null); setTransferToAccountId(null); setPrincipalAmount(''); setInterestAmount(''); setBrowseParent(null) }}
+            onClick={() => { setType(key); setCategoryId(null); setTransferToAccountId(null); setPrincipalAmount(''); setInterestAmount(''); setMcc(''); setBrowseParent(null) }}
             className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
               type === key ? 'bg-white text-blue-600 shadow-sm font-bold' : 'text-gray-500'
             }`}
@@ -183,7 +186,7 @@ export default function AddExpense() {
           <div className="text-sm text-gray-500 mb-2 font-medium">Категория</div>
           {browseParent && (
             <button
-              onClick={() => { setBrowseParent(null); setCategoryId(null) }}
+              onClick={() => { setBrowseParent(null); setCategoryId(null); setMcc('') }}
               className="text-sm text-blue-600 mb-2 flex items-center gap-1"
             >
               ← {browseParent.icon} {browseParent.name}
@@ -200,6 +203,11 @@ export default function AddExpense() {
                     setCategoryId(null)
                   } else {
                     setCategoryId(cat.id!)
+                    if (cat.mcc) {
+                      setMcc(String(cat.mcc))
+                    } else {
+                      setMcc('')
+                    }
                   }
                 }}
                 className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-all ${
@@ -213,9 +221,15 @@ export default function AddExpense() {
               </button>
             ))}
           </div>
-          {selectedCategory?.mcc && (
-            <div className="mt-2 text-xs text-gray-400 font-mono text-center">
-              MCC {selectedCategory.mcc}
+          {selectedCategory && (
+            <div className="mt-2">
+              <input
+                type="number"
+                value={mcc}
+                onChange={(e) => setMcc(e.target.value)}
+                className="w-full text-xs font-mono text-center border border-gray-200 rounded-lg px-2 py-1.5"
+                placeholder={`MCC-код${selectedCategory.mcc ? ` (из категории: ${selectedCategory.mcc})` : ''}`}
+              />
             </div>
           )}
         </div>

@@ -149,8 +149,8 @@ export default function Transactions() {
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium truncate">{cat?.name ?? '—'}{tx.description ? `, ${tx.description}` : ''}</div>
                           <div className="text-xs text-gray-400 truncate">{account?.name}</div>
-                          {cat?.mcc && (
-                            <div className="text-xs text-gray-400 font-mono">MCC {cat.mcc}</div>
+                          {(tx.mcc ?? cat?.mcc) && (
+                            <div className="text-xs text-gray-400 font-mono">MCC {tx.mcc ?? cat?.mcc}</div>
                           )}
                           {tx.principalAmount && (
                             <div className="text-xs text-orange-500">Тело: {formatCurrency(tx.principalAmount)}</div>
@@ -193,6 +193,7 @@ function EditForm({
   const [accountId, setAccountId] = useState(tx.accountId)
   const [date, setDate] = useState(dayjs(tx.date).format('YYYY-MM-DD'))
   const [description, setDescription] = useState(tx.description)
+  const [mcc, setMcc] = useState(String(tx.mcc ?? ''))
   const [saving, setSaving] = useState(false)
   const [browseParent, setBrowseParent] = useState<any>(null)
 
@@ -211,6 +212,7 @@ function EditForm({
       accountId,
       date: new Date(date),
       description: description.trim(),
+      mcc: mcc ? Number(mcc) : undefined,
     })
     setSaving(false)
   }
@@ -249,6 +251,9 @@ function EditForm({
                       setBrowseParent(cat)
                     } else {
                       setCategoryId(cat.id!)
+                      if (!mcc && cat.mcc) {
+                        setMcc(String(cat.mcc))
+                      }
                       setBrowseParent(null)
                     }
                   }}
@@ -263,9 +268,15 @@ function EditForm({
                 </button>
               ))}
             </div>
-            {selectedCategory?.mcc && (
-              <div className="mt-1 text-xs text-gray-400 font-mono text-center">
-                MCC {selectedCategory.mcc}
+            {selectedCategory && (
+              <div className="mt-1">
+                <input
+                  type="number"
+                  value={mcc}
+                  onChange={(e) => setMcc(e.target.value)}
+                  className="w-full text-xs font-mono text-center border border-gray-200 rounded-lg px-2 py-1.5"
+                  placeholder={`MCC-код${selectedCategory.mcc ? ` (из категории: ${selectedCategory.mcc})` : ''}`}
+                />
               </div>
             )}
           </div>
