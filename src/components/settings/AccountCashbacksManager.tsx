@@ -2,6 +2,7 @@ import { useState } from 'react'
 import dayjs from 'dayjs'
 import { useAccountCashbacks, useCashbacks, useAllCategories } from '@/hooks/useDb'
 import { addAccountCashback, updateAccountCashback, deleteAccountCashback } from '@/db'
+import { formatPeriod } from '@/lib/utils'
 import type { Account, Cashback, AccountCashback } from '@/db'
 
 interface Props {
@@ -9,16 +10,6 @@ interface Props {
   bankName: string
   bankIcon: string
   onBack: () => void
-}
-
-function formatPeriod(start: Date, end: Date): string {
-  const s = dayjs(start)
-  const e = dayjs(end)
-  const isFullMonth = s.date() === 1 && e.date() === e.daysInMonth()
-  if (isFullMonth) {
-    return s.format('MMMM YYYY')
-  }
-  return `${s.format('DD.MM.YYYY')} — ${e.format('DD.MM.YYYY')}`
 }
 
 function getInitialDates() {

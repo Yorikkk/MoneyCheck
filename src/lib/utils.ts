@@ -15,3 +15,13 @@ export function formatDate(date: Date | string): string {
 export function formatDateTime(date: Date | string): string {
   return dayjs(date).format('D MMM YYYY, HH:mm')
 }
+
+export function formatPeriod(start: Date, end: Date): string {
+  const s = dayjs(start)
+  const e = dayjs(end)
+  const isFullMonth = s.date() === 1 && e.date() === e.daysInMonth()
+  if (isFullMonth) {
+    return s.format('MMMM YYYY')
+  }
+  return `${s.format('DD.MM.YYYY')} — ${e.format('DD.MM.YYYY')}`
+}

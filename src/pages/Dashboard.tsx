@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import dayjs from 'dayjs'
-import { useTransactionsByMonth, useAccounts, useCategories, useDebts, useAccountTypes, useBanks } from '@/hooks/useDb'
+import { useTransactionsByMonth, useAccounts, useCategories, useDebts, useAccountTypes, useBanks, useCashbackSummary } from '@/hooks/useDb'
 import { formatCurrency } from '@/lib/utils'
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
 
@@ -10,6 +10,7 @@ export default function Dashboard() {
   const now = dayjs()
   const [month, setMonth] = useState(now.month())
   const [year, setYear] = useState(now.year())
+  const [expanded, setExpanded] = useState(false)
 
   const transactions = useTransactionsByMonth(year, month + 1) ?? []
   const accounts = useAccounts() ?? []
@@ -18,6 +19,7 @@ export default function Dashboard() {
 
   const accountTypes = useAccountTypes() ?? []
   const banks = useBanks() ?? []
+  const cashbackSummary = useCashbackSummary(year, month + 1) ?? []
 
   function getBankLabel(bankId: number) {
     const bank = banks.find((b) => b.id === bankId)
@@ -99,6 +101,48 @@ export default function Dashboard() {
           <div className="text-lg font-bold text-red-700">{formatCurrency(expenseTotal)}</div>
         </div>
       </div>
+
+      {cashbackSummary.length > 0 && (
+        <div className="bg-white rounded-xl p-4 shadow-sm">
+          <div className="text-sm font-medium text-gray-500 mb-3">💳 Кешбек за месяц</div>
+          <div className="space-y-3">
+            {(expanded ? cashbackSummary : cashbackSummary.slice(0, 2)).map(({ account, bank, items }) => (
+              <div key={account.id}>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-lg">{account.icon}</span>
+                  <span className="text-sm font-medium">{account.name}</span>
+                  <span className="text-xs text-gray-400">{bank.icon} {bank.name}</span>
+                </div>
+                <div className="ml-8 space-y-1">
+                  {items.map((item, i) => (
+                    <div key={i} className="flex items-center justify-between text-sm">
+                      <div className="flex-1 min-w-0">
+                        <span className="font-medium">{item.name}</span>
+                        <span className="text-gray-400"> {item.percent}%</span>
+                        {item.categoryName && <span className="text-xs text-gray-400"> · {item.categoryName}</span>}
+                        {item.dateRange && <span className="text-xs text-gray-400"> · {item.dateRange}</span>}
+                      </div>
+                      {item.calculatedAmount > 0 && (
+                        <span className="text-green-600 font-semibold shrink-0 ml-2">
+                          +{formatCurrency(item.calculatedAmount)}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          {cashbackSummary.length > 2 && (
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="mt-3 text-sm text-blue-600"
+            >
+              {expanded ? '← Свернуть' : `Ещё ${cashbackSummary.length - 2} ${cashbackSummary.length - 2 === 1 ? 'счёт' : 'счета'} →`}
+            </button>
+          )}
+        </div>
+      )}
 
       {pieData.length > 0 && (
         <div className="bg-white rounded-xl p-4 shadow-sm">

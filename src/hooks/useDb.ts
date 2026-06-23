@@ -1,5 +1,6 @@
+import dayjs from 'dayjs'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '@/db'
+import { db, type Account, type Bank, type AccountCashback } from '@/db'
 
 export function useTransactionsByMonth(year: number, month: number) {
   const from = new Date(year, month - 1, 1)
@@ -122,4 +123,109 @@ export function useAllCategories() {
   return useLiveQuery(() =>
     db.categories.orderBy('order').toArray()
   , [])
+}
+
+export function useCashbackSummary(year: number, month: number) {
+  return useLiveQuery(async () => {
+    const firstDay = new Date(year, month - 1, 1)
+    const lastDay = new Date(year, month, 0, 23, 59, 59)
+
+    const [allAc, allCb, accounts, banks, categories, transactions] = await Promise.all([
+      db.accountCashbacks.toArray(),
+      db.cashbacks.toArray(),
+      db.accounts.orderBy('order').toArray(),
+      db.banks.orderBy('order').toArray(),
+      db.categories.toArray(),
+      db.transactions
+        .where('date')
+        .between(firstDay, lastDay, true, true)
+        .toArray(),
+    ])
+
+    const cbMap = new Map(allCb.map((cb) => [cb.id!, cb]))
+    const catMap = new Map(categories.map((c) => [c.id!, c]))
+
+    function fmtDate(d: Date) {
+      const dd = String(d.getDate()).padStart(2, '0')
+      const mm = String(d.getMonth() + 1).padStart(2, '0')
+      return `${dd}.${mm}.${d.getFullYear()}`
+    }
+
+    function formatDateRange(ac: AccountCashback): string | null {
+      const s = dayjs(ac.startDate)
+      const e = dayjs(ac.endDate)
+      const startsFirst = s.date() === 1 && s.month() === month - 1 && s.year() === year
+      const endsLast = e.date() === e.daysInMonth() && e.month() === month - 1 && e.year() === year
+      if (startsFirst && endsLast) return null
+      const showStart = ac.startDate > firstDay ? ac.startDate : null
+      const showEnd = ac.endDate < lastDay ? ac.endDate : null
+      if (showStart && showEnd) return `${fmtDate(showStart)} — ${fmtDate(showEnd)}`
+      if (showStart) return `с ${fmtDate(showStart)}`
+      if (showEnd) return `до ${fmtDate(showEnd)}`
+      return null
+    }
+
+    const result: {
+      account: Account
+      bank: Bank
+      items: {
+        name: string
+        percent: number
+        categoryName?: string
+        dateRange: string | null
+        calculatedAmount: number
+      }[]
+    }[] = []
+
+    for (const account of accounts) {
+      const activeAc = allAc.filter(
+        (ac) => ac.accountId === account.id && ac.startDate <= lastDay && ac.endDate >= firstDay
+      )
+      if (activeAc.length === 0) continue
+
+      const bank = banks.find((b) => b.id === account.bankId)
+      if (!bank) continue
+
+      const items: {
+        name: string
+        percent: number
+        categoryName?: string
+        dateRange: string | null
+        calculatedAmount: number
+      }[] = []
+
+      for (const ac of activeAc) {
+        const cb = cbMap.get(ac.cashbackId)
+        if (!cb) continue
+
+        let qualifying = transactions.filter(
+          (t) => t.accountId === account.id && t.type === 'expense' && t.amount > 0
+        )
+        if (cb.categoryId) {
+          qualifying = qualifying.filter((t) => t.categoryId === cb.categoryId)
+        }
+        if (cb.mccList && cb.mccList.length > 0) {
+          qualifying = qualifying.filter((t) => t.mcc != null && cb.mccList!.includes(t.mcc))
+        }
+
+        const totalSpent = qualifying.reduce((s, t) => s + t.amount, 0)
+        const calculatedAmount = Math.round(totalSpent * (ac.percent / 100) * 100) / 100
+        const category = cb.categoryId ? catMap.get(cb.categoryId) : undefined
+
+        items.push({
+          name: cb.name,
+          percent: ac.percent,
+          categoryName: category?.name,
+          dateRange: formatDateRange(ac),
+          calculatedAmount,
+        })
+      }
+
+      if (items.length > 0) {
+        result.push({ account, bank, items })
+      }
+    }
+
+    return result
+  }, [year, month])
 }
