@@ -24,6 +24,7 @@ export default function AccountTypesManager({ onBack }: { onBack: () => void }) 
   }
 
   async function handleDelete(id: number) {
+    if (!confirm('Вы уверены, что хотите удалить этот тип счёта?')) return
     setError('')
     try {
       await deleteAccountType(id)

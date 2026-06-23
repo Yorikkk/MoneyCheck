@@ -104,6 +104,7 @@ export default function AccountsManager({ onBack }: { onBack: () => void }) {
   }
 
   async function handleDelete(id: number) {
+    if (!confirm('Вы уверены, что хотите удалить счёт?')) return
     await deleteAccount(id)
   }
 
