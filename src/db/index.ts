@@ -78,3 +78,5 @@ export {
   updateAccountCashback,
   deleteAccountCashback,
 } from './accountCashbacks'
+
+export { exportData, importData } from './dump'
