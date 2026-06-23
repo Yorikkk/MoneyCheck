@@ -3,9 +3,11 @@ import { useBanks } from '@/hooks/useDb'
 import { addBank, updateBank, deleteBank } from '@/db'
 import type { Bank } from '@/db'
 import { ColorPicker } from '@/components/ui/ColorPicker'
+import CashbacksManager from './CashbacksManager'
 
 export default function BanksManager({ onBack }: { onBack: () => void }) {
   const banks = useBanks() ?? []
+  const [selectedBank, setSelectedBank] = useState<Bank | null>(null)
   const [edit, setEdit] = useState<Partial<Bank> | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -31,6 +33,17 @@ export default function BanksManager({ onBack }: { onBack: () => void }) {
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Ошибка удаления')
     }
+  }
+
+  if (selectedBank) {
+    return (
+      <CashbacksManager
+        bankId={selectedBank.id!}
+        bankName={selectedBank.name}
+        bankIcon={selectedBank.icon}
+        onBack={() => setSelectedBank(null)}
+      />
+    )
   }
 
   return (
@@ -77,14 +90,28 @@ export default function BanksManager({ onBack }: { onBack: () => void }) {
 
       <div className="space-y-2">
         {banks.map((b) => (
-          <div key={b.id} className="bg-white rounded-xl p-3 shadow-sm flex items-center gap-3">
+          <div
+            key={b.id}
+            onClick={() => setSelectedBank(b)}
+            className="bg-white rounded-xl p-3 shadow-sm flex items-center gap-3 cursor-pointer hover:bg-gray-50"
+          >
             <span className="text-2xl">{b.icon}</span>
             <div className="flex-1 min-w-0">
               <span className="font-medium">{b.name}</span>
             </div>
             <div className="w-4 h-4 rounded-full" style={{ backgroundColor: b.color }} />
-            <button onClick={() => setEdit(b)} className="text-gray-400 text-sm px-2">✏️</button>
-            <button onClick={() => b.id && handleDelete(b.id)} className="text-gray-400 text-sm px-2">🗑️</button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setEdit(b) }}
+              className="text-gray-400 text-sm px-2"
+            >
+              ✏️
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); b.id && handleDelete(b.id) }}
+              className="text-gray-400 text-sm px-2"
+            >
+              🗑️
+            </button>
           </div>
         ))}
       </div>

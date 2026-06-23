@@ -105,3 +105,15 @@ export function useDebtPayments(debtId: number) {
     db.debtPayments.where('debtId').equals(debtId).reverse().toArray()
   , [debtId])
 }
+
+export function useCashbacks(bankId: number) {
+  return useLiveQuery(() =>
+    db.cashbacks.where('bankId').equals(bankId).toArray()
+  , [bankId])
+}
+
+export function useAllCategories() {
+  return useLiveQuery(() =>
+    db.categories.orderBy('order').toArray()
+  , [])
+}

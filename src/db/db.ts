@@ -99,6 +99,15 @@ export interface DebtPayment {
   createdAt: Date
 }
 
+export interface Cashback {
+  id?: number
+  bankId: number
+  name: string
+  percent: number
+  categoryId?: number
+  mccList?: number[]
+}
+
 const db = new Dexie('MoneyCheckDB') as Dexie & {
   transactions: EntityTable<Transaction, 'id'>
   categories: EntityTable<Category, 'id'>
@@ -109,6 +118,7 @@ const db = new Dexie('MoneyCheckDB') as Dexie & {
   debts: EntityTable<Debt, 'id'>
   debtPayments: EntityTable<DebtPayment, 'id'>
   banks: EntityTable<Bank, 'id'>
+  cashbacks: EntityTable<Cashback, 'id'>
 }
 
 db.version(1).stores({
@@ -221,6 +231,19 @@ db.version(9).stores({
   debts: '++id, status, familyMemberId',
   debtPayments: '++id, debtId',
   banks: '++id, order',
+})
+
+db.version(10).stores({
+  transactions: '++id, date, categoryId, type, accountId, transferToAccountId',
+  categories: '++id, type, order, parentId',
+  budgets: '++id, [month+year]',
+  familyMembers: '++id',
+  accountTypes: '++id, order',
+  accounts: '++id, familyMemberId, order, bankId, typeId',
+  debts: '++id, status, familyMemberId',
+  debtPayments: '++id, debtId',
+  banks: '++id, order',
+  cashbacks: '++id, bankId',
 })
 
 export { db }

@@ -10,6 +10,7 @@ export type {
   Bank,
   Debt,
   DebtPayment,
+  Cashback,
 } from './db'
 
 export { getCategories, addCategory, updateCategory, deleteCategory, getCategoryTree, hasSubcategories } from './categories'
@@ -62,3 +63,10 @@ export {
   updateDebtPayment,
   deleteDebtPayment,
 } from './debtPayments'
+
+export {
+  getCashbacksByBank,
+  addCashback,
+  updateCashback,
+  deleteCashback,
+} from './cashbacks'
