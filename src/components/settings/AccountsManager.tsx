@@ -8,6 +8,7 @@ import { addAccount, updateAccount, deleteAccount, reorderAccounts } from '@/db'
 import type { Account } from '@/db'
 import { ColorPicker } from '@/components/ui/ColorPicker'
 import { formatCurrency } from '@/lib/utils'
+import AccountCashbacksManager from './AccountCashbacksManager'
 
 const CURRENCIES = ['RUB', 'USD', 'EUR', 'CNY', 'KZT', 'UZS', 'GBP', 'TRY']
 
@@ -15,6 +16,7 @@ function SortableAccount({
   account,
   onEdit,
   onDelete,
+  onClick,
   getTypeName,
   getMemberName,
   getBankName,
@@ -22,6 +24,7 @@ function SortableAccount({
   account: Account
   onEdit: () => void
   onDelete: () => void
+  onClick: () => void
   getTypeName: (id: number) => string
   getMemberName: (id: number) => string
   getBankName: (id: number) => string
@@ -37,8 +40,8 @@ function SortableAccount({
   }
 
   return (
-    <div ref={setNodeRef} style={style} className="bg-white rounded-xl p-3 shadow-sm flex items-center gap-3">
-      <button {...attributes} {...listeners} className="text-gray-300 cursor-grab active:cursor-grabbing text-lg px-1 touch-none">⠿</button>
+    <div ref={setNodeRef} style={style} onClick={onClick} className="bg-white rounded-xl p-3 shadow-sm flex items-center gap-3 cursor-pointer active:bg-gray-50">
+      <button {...attributes} {...listeners} onClick={(e) => e.stopPropagation()} className="text-gray-300 cursor-grab active:cursor-grabbing text-lg px-1 touch-none">⠿</button>
       <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-lg shrink-0" style={{ backgroundColor: account.color }}>
         {account.icon}
       </div>
@@ -50,8 +53,8 @@ function SortableAccount({
         <div className="font-semibold text-sm">{formatCurrency(account.balance)}</div>
         <div className="text-xs text-gray-400">{account.currency}</div>
       </div>
-      <button onClick={onEdit} className="text-gray-400 text-sm px-1">✏️</button>
-      <button onClick={onDelete} className="text-gray-400 text-sm px-1">🗑️</button>
+      <button onClick={(e) => { e.stopPropagation(); onEdit() }} className="text-gray-400 text-sm px-1">✏️</button>
+      <button onClick={(e) => { e.stopPropagation(); onDelete() }} className="text-gray-400 text-sm px-1">🗑️</button>
     </div>
   )
 }
@@ -62,6 +65,7 @@ export default function AccountsManager({ onBack }: { onBack: () => void }) {
   const familyMembers = useFamilyMembers() ?? []
   const banks = useBanks() ?? []
   const [edit, setEdit] = useState<Partial<Account> | null>(null)
+  const [selectedAccount, setSelectedAccount] = useState<Account | null>(null)
   const [saving, setSaving] = useState(false)
 
   const sensors = useSensors(
@@ -116,6 +120,10 @@ export default function AccountsManager({ onBack }: { onBack: () => void }) {
     return bank ? `${bank.icon} ${bank.name}` : '—'
   }
 
+  function getBank(bankId: number) {
+    return banks.find((b) => b.id === bankId)
+  }
+
   const handleDragEnd = useCallback(async (event: DragEndEvent) => {
     const { active, over } = event
     if (!over || active.id === over.id) return
@@ -132,6 +140,15 @@ export default function AccountsManager({ onBack }: { onBack: () => void }) {
 
   return (
     <div>
+      {selectedAccount ? (
+        <AccountCashbacksManager
+          account={selectedAccount}
+          bankName={getBank(selectedAccount.bankId)?.name ?? ''}
+          bankIcon={getBank(selectedAccount.bankId)?.icon ?? ''}
+          onBack={() => setSelectedAccount(null)}
+        />
+      ) : (
+        <>
       <div className="flex items-center gap-3 mb-4">
         <button onClick={onBack} className="text-blue-600 text-lg">←</button>
         <h2 className="text-xl font-bold">Счета</h2>
@@ -219,6 +236,7 @@ export default function AccountsManager({ onBack }: { onBack: () => void }) {
               <SortableAccount
                 key={a.id}
                 account={a}
+                onClick={() => setSelectedAccount(a)}
                 onEdit={() => setEdit(a)}
                 onDelete={() => a.id && handleDelete(a.id)}
                 getTypeName={getTypeName}
@@ -233,6 +251,8 @@ export default function AccountsManager({ onBack }: { onBack: () => void }) {
       <button onClick={() => setEdit({ name: '', icon: '🏦', color: '#2196F3', currency: 'RUB', balance: 0, bankId: banks[0]?.id, familyMemberId: familyMembers[0]?.id })} className="w-full mt-4 py-3 rounded-xl border-2 border-dashed border-gray-300 text-gray-500 text-sm">
         ＋ Добавить счёт
       </button>
+        </>
+      )}
     </div>
   )
 }

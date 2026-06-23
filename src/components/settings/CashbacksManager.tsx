@@ -64,7 +64,6 @@ export default function CashbacksManager({ bankId, bankName, bankIcon, onBack }:
       setEdit({
         bankId,
         name: '',
-        percent: 0,
         categoryId: undefined,
         mccList: [],
         mccInputs: [],
@@ -109,7 +108,6 @@ export default function CashbacksManager({ bankId, bankName, bankIcon, onBack }:
     const data = {
       bankId,
       name: edit.name.trim(),
-      percent: edit.percent ?? 0,
       categoryId: edit.categoryId || undefined,
       mccList: mccList.length > 0 ? mccList : undefined,
     }
@@ -160,20 +158,6 @@ export default function CashbacksManager({ bankId, bankName, bankIcon, onBack }:
             onChange={(e) => setEdit({ ...edit, name: e.target.value })}
             autoFocus
           />
-
-          <div>
-            <label className="text-sm text-gray-500 mb-1 block">Процент</label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              max="100"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-              placeholder="0.00"
-              value={edit.percent ?? ''}
-              onChange={(e) => setEdit({ ...edit, percent: parseFloat(e.target.value) || 0 })}
-            />
-          </div>
 
           <div>
             <label className="text-sm text-gray-500 mb-1 block">Категория (необязательно)</label>
@@ -246,9 +230,8 @@ export default function CashbacksManager({ bankId, bankName, bankIcon, onBack }:
               <div className="flex-1 min-w-0">
                 <div className="font-medium">{cb.name}</div>
                 <div className="text-sm text-gray-500">
-                  {cb.percent}%
                   {cb.categoryId && (
-                    <> · {getCategoryName(cb.categoryId)}</>
+                    <>{getCategoryName(cb.categoryId)}</>
                   )}
                 </div>
                 {cb.mccList && cb.mccList.length > 0 && (

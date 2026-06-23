@@ -112,6 +112,12 @@ export function useCashbacks(bankId: number) {
   , [bankId])
 }
 
+export function useAccountCashbacks(accountId: number) {
+  return useLiveQuery(() =>
+    db.accountCashbacks.where('accountId').equals(accountId).toArray()
+  , [accountId])
+}
+
 export function useAllCategories() {
   return useLiveQuery(() =>
     db.categories.orderBy('order').toArray()
