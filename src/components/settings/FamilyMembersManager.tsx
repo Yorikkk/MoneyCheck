@@ -8,6 +8,7 @@ export default function FamilyMembersManager({ onBack }: { onBack: () => void })
   const members = useFamilyMembers() ?? []
   const [edit, setEdit] = useState<Partial<FamilyMember> | null>(null)
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
   async function handleSave() {
     if (!edit || !edit.name?.trim()) return
@@ -22,7 +23,13 @@ export default function FamilyMembersManager({ onBack }: { onBack: () => void })
   }
 
   async function handleDelete(id: number) {
-    await deleteFamilyMember(id)
+    if (!confirm('Вы уверены, что хотите удалить этого члена семьи?')) return
+    setError('')
+    try {
+      await deleteFamilyMember(id)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Ошибка удаления')
+    }
   }
 
   return (
@@ -31,6 +38,12 @@ export default function FamilyMembersManager({ onBack }: { onBack: () => void })
         <button onClick={onBack} className="text-blue-600 text-lg">←</button>
         <h2 className="text-xl font-bold">Члены семьи</h2>
       </div>
+
+      {error && (
+        <div className="bg-red-50 text-red-600 text-sm rounded-lg p-3 mb-4">
+          {error}
+        </div>
+      )}
 
       {edit && (
         <div className="bg-white rounded-xl p-4 shadow-sm mb-4 space-y-3">
