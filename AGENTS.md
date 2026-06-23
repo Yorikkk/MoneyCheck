@@ -37,22 +37,21 @@ Full client-side PWA. All data in IndexedDB (Dexie). No backend, no API keys, no
 
 ```bash
 npm run dev       # Vite dev server
-npm run build     # tsc -b + vite build (typecheck then bundle)
+npm run build     # tsc -b && vite build (typecheck then bundle)
 npm run preview   # preview production build
 ```
 
 No test, lint, or format commands exist. No CI.
 
-## Stack quirks
+## Stack
 
 - **React 19 + TypeScript strict** — `noUnusedLocals`, `noUnusedParameters` on in `tsconfig.app.json`
 - **Vite 6** — `@/` → `src/` alias
 - **Tailwind CSS 4** — CSS-first: `@import "tailwindcss"` in `src/index.css`, no config file
-- **Dexie 4** — 10 tables (schema v10): `transactions`, `categories`, `budgets`, `familyMembers`, `accountTypes`, `banks`, `accounts`, `debts`, `debtPayments`, `cashbacks`
-- **Reactivity** — `useLiveQuery` from `dexie-react-hooks` in `src/hooks/useDb.ts` (re-renders on IndexedDB change); also async CRUD functions in `src/db/*.ts`
-- **HashRouter** — not BrowserRouter. 7 routes (6 + settings sub-views)
+- **Dexie 4** — 11 tables (schema v13): `transactions`, `categories`, `budgets`, `familyMembers`, `accountTypes`, `banks`, `accounts`, `debts`, `debtPayments`, `cashbacks`, `accountCashbacks`
+- **HashRouter** — 6 top routes in `src/App.tsx:23-28`: Dashboard (`/`), AddExpense (`/add`), Balance (`/balance`), Transactions (`/transactions`), Reports (`/reports`), Settings (`/settings`)
+- **Settings** is SPA-style view switching (`useState<View>`), not sub-routes
 - **PWA** — `vite-plugin-pwa` with auto-update service worker (`registerType: 'autoUpdate'`)
-- **React Router v7** — 6 top routes: Dashboard (`/`), AddExpense (`/add`), Balance (`/balance`), Transactions (`/transactions`), Reports (`/reports`), Settings (`/settings`)
 - **Zustand 5** — UI state overlay (not data)
 - **TanStack Query 5** — wired in `App.tsx` but unused (planned for future sync)
 - **@dnd-kit** — drag-and-drop reordering in settings managers (categories, accounts, etc.)
@@ -61,12 +60,22 @@ No test, lint, or format commands exist. No CI.
 
 ## DB
 
-Schema versioning in `src/db/db.ts`. All CRUD functions in `src/db/*.ts`, re-exported from `src/db/index.ts`. `seedDefaults()` in `src/db/seed.ts` runs idempotently on every app mount (checks count then bulk-adds if empty).
+- Schema versioning in `src/db/db.ts` (v13 current)
+- All types/interfaces defined in `src/db/db.ts`
+- All CRUD functions in `src/db/*.ts`, re-exported from `src/db/index.ts`
+- `seedDefaults()` in `src/db/seed.ts` — runs idempotently on every app mount (checks count, bulk-adds if empty)
+- `src/db/dump.ts` — full import/export (all 11 tables with date field serialization)
+
+## Reactivity
+
+Two patterns coexist:
+1. **`useLiveQuery` hooks** in `src/hooks/useDb.ts` — auto-render on IndexedDB change (preferred for reads)
+2. **Async CRUD functions** in `src/db/*.ts` — direct Dexie operations (used for writes/updates)
 
 ## Conventions
 
-- Components: `export default function PageName()` (pages), named exports (layout)
-- Types: shared interfaces in `src/db/db.ts`
-- Formatters: `src/lib/utils.ts` — ru-RU locale, RUB currency
-- `AppShell` is mobile-first (`h-dvh`, `max-w-lg`, bottom nav)
+- Pages: `export default function PageName()`; layout: named `export function AppShell()`
+- Settings sub-views: named exports (e.g. `export function CategoriesManager()`) in `src/components/settings/`
+- Formatters in `src/lib/utils.ts` — ru-RU locale, RUB currency
+- `AppShell` is mobile-first (`h-dvh`, `max-w-lg`, bottom nav with 6 items)
 - No comments in code
