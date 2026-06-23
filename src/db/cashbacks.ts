@@ -13,5 +13,9 @@ export async function updateCashback(id: number, changes: Partial<Cashback>) {
 }
 
 export async function deleteCashback(id: number) {
+  const count = await db.accountCashbacks.where('cashbackId').equals(id).count()
+  if (count > 0) {
+    throw new Error(`Нельзя удалить кешбек: к нему привязано ${count} кешбек(ов) счетов`)
+  }
   return db.cashbacks.delete(id)
 }

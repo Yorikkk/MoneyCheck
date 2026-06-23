@@ -20,6 +20,20 @@ export async function updateAccount(id: number, changes: Partial<Account>) {
 }
 
 export async function deleteAccount(id: number) {
+  const [txCount, transferCount, acCount] = await Promise.all([
+    db.transactions.where('accountId').equals(id).count(),
+    db.transactions.where('transferToAccountId').equals(id).count(),
+    db.accountCashbacks.where('accountId').equals(id).count(),
+  ])
+
+  if (txCount > 0 || transferCount > 0 || acCount > 0) {
+    const parts: string[] = []
+    if (txCount > 0) parts.push(`${txCount} транзакци(й)`)
+    if (transferCount > 0) parts.push(`${transferCount} перевод(ов)`)
+    if (acCount > 0) parts.push(`${acCount} кешбек(ов) счёта`)
+    throw new Error(`Нельзя удалить счёт: к нему привязано ${parts.join(', ')}`)
+  }
+
   return db.accounts.delete(id)
 }
 

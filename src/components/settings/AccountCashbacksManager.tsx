@@ -40,6 +40,7 @@ export default function AccountCashbacksManager({ account, bankName, bankIcon, o
   const [startDate, setStartDate] = useState<string>('')
   const [endDate, setEndDate] = useState<string>('')
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
   const bankCashbackMap: Record<number, Cashback> = {}
   for (const cb of bankCashbacks) {
@@ -94,7 +95,13 @@ export default function AccountCashbacksManager({ account, bankName, bankIcon, o
   }
 
   async function handleDelete(id: number) {
-    await deleteAccountCashback(id)
+    if (!confirm('Вы уверены, что хотите удалить этот кешбек?')) return
+    setError('')
+    try {
+      await deleteAccountCashback(id)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Ошибка удаления')
+    }
   }
 
   function getCategoryName(categoryId?: number | null): string {
@@ -116,6 +123,12 @@ export default function AccountCashbacksManager({ account, bankName, bankIcon, o
       <div className="text-sm text-gray-500 mb-4">
         {bankIcon} {bankName}
       </div>
+
+      {error && (
+        <div className="bg-red-50 text-red-600 text-sm rounded-lg p-3 mb-4">
+          {error}
+        </div>
+      )}
 
       {showForm && (
         <div className="bg-white rounded-xl p-4 shadow-sm mb-4 space-y-3">

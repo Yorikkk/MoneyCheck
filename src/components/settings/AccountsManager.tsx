@@ -67,6 +67,7 @@ export default function AccountsManager({ onBack }: { onBack: () => void }) {
   const [edit, setEdit] = useState<Partial<Account> | null>(null)
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null)
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -105,7 +106,12 @@ export default function AccountsManager({ onBack }: { onBack: () => void }) {
 
   async function handleDelete(id: number) {
     if (!confirm('Вы уверены, что хотите удалить счёт?')) return
-    await deleteAccount(id)
+    setError('')
+    try {
+      await deleteAccount(id)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Ошибка удаления')
+    }
   }
 
   function getTypeName(typeId: number) {
@@ -154,6 +160,12 @@ export default function AccountsManager({ onBack }: { onBack: () => void }) {
         <button onClick={onBack} className="text-blue-600 text-lg">←</button>
         <h2 className="text-xl font-bold">Счета</h2>
       </div>
+
+      {error && (
+        <div className="bg-red-50 text-red-600 text-sm rounded-lg p-3 mb-4">
+          {error}
+        </div>
+      )}
 
       {edit && (
         <div className="bg-white rounded-xl p-4 shadow-sm mb-4 space-y-3">

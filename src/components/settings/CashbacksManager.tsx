@@ -126,6 +126,7 @@ export default function CashbacksManager({ bankId, bankName, bankIcon, onBack }:
   }
 
   async function handleDelete(id: number) {
+    if (!confirm('Вы уверены, что хотите удалить этот кешбек?')) return
     setError('')
     try {
       await deleteCashback(id)

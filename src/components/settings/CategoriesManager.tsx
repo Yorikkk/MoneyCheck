@@ -18,6 +18,7 @@ export default function CategoriesManager({ onBack }: { onBack: () => void }) {
   const [edit, setEdit] = useState<Partial<Category> | null>(null)
   const [saving, setSaving] = useState(false)
   const [parent, setParent] = useState<Category | null>(null)
+  const [error, setError] = useState('')
 
   const subcategories = useSubcategories(parent?.id ?? 0)
   const categories = parent ? (subcategories ?? []) : rootCategories
@@ -68,9 +69,14 @@ export default function CategoriesManager({ onBack }: { onBack: () => void }) {
 
   async function handleDelete(id: number) {
     if (!confirm('Удалить категорию? Все подкатегории также будут удалены.')) return
-    await deleteCategory(id)
-    if (parent && parent.id === id) {
-      setParent(null)
+    setError('')
+    try {
+      await deleteCategory(id)
+      if (parent && parent.id === id) {
+        setParent(null)
+      }
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Ошибка удаления')
     }
   }
 
@@ -105,6 +111,12 @@ export default function CategoriesManager({ onBack }: { onBack: () => void }) {
               {t.label}
             </button>
           ))}
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-red-50 text-red-600 text-sm rounded-lg p-3 mb-4">
+          {error}
         </div>
       )}
 

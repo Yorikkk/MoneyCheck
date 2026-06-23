@@ -283,4 +283,18 @@ db.version(12).stores({
   accountCashbacks: '++id, accountId, [accountId+cashbackId]',
 })
 
+db.version(13).stores({
+  transactions: '++id, date, categoryId, type, accountId, transferToAccountId, familyMemberId',
+  categories: '++id, type, order, parentId',
+  budgets: '++id, [month+year], categoryId',
+  familyMembers: '++id',
+  accountTypes: '++id, order',
+  accounts: '++id, familyMemberId, order, bankId, typeId',
+  debts: '++id, status, familyMemberId',
+  debtPayments: '++id, debtId',
+  banks: '++id, order',
+  cashbacks: '++id, bankId, categoryId',
+  accountCashbacks: '++id, accountId, [accountId+cashbackId]',
+})
+
 export { db }
