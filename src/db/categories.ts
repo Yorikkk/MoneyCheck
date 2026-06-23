@@ -37,3 +37,11 @@ export async function deleteCategory(id: number) {
   }
   return db.categories.delete(id)
 }
+
+export async function reorderCategories(ids: number[]) {
+  await db.transaction('rw', db.categories, () => {
+    ids.forEach((id, index) => {
+      db.categories.update(id, { order: index + 1 })
+    })
+  })
+}

@@ -13,7 +13,7 @@ export type {
   Cashback,
 } from './db'
 
-export { getCategories, addCategory, updateCategory, deleteCategory, getCategoryTree, hasSubcategories } from './categories'
+export { getCategories, addCategory, updateCategory, deleteCategory, getCategoryTree, hasSubcategories, reorderCategories } from './categories'
 export {
   addTransaction,
   getTransactionsByDateRange,

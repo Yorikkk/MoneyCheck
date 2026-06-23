@@ -1,6 +1,14 @@
 import { useState } from 'react'
+import {
+  DndContext, DragEndEvent, closestCenter,
+  PointerSensor, useSensor, useSensors,
+} from '@dnd-kit/core'
+import {
+  SortableContext, useSortable, verticalListSortingStrategy, arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { useRootCategories, useSubcategories, useHasSubcategories } from '@/hooks/useDb'
-import { addCategory, updateCategory, deleteCategory } from '@/db'
+import { addCategory, updateCategory, deleteCategory, reorderCategories } from '@/db'
 import type { Category } from '@/db'
 import { ColorPicker } from '@/components/ui/ColorPicker'
 
@@ -13,6 +21,20 @@ export default function CategoriesManager({ onBack }: { onBack: () => void }) {
 
   const subcategories = useSubcategories(parent?.id ?? 0)
   const categories = parent ? (subcategories ?? []) : rootCategories
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  )
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const oldIndex = categories.findIndex(c => c.id === active.id)
+    const newIndex = categories.findIndex(c => c.id === over.id)
+    const reordered = arrayMove(categories, oldIndex, newIndex)
+    reorderCategories(reordered.map(c => c.id!))
+  }
 
   async function handleSave() {
     if (!edit || !edit.name?.trim()) return
@@ -96,17 +118,21 @@ export default function CategoriesManager({ onBack }: { onBack: () => void }) {
         />
       )}
 
-      <div className="space-y-2">
-        {categories.map((c) => (
-          <CategoryCard
-            key={c.id}
-            category={c}
-            onEdit={() => setEdit(c)}
-            onDelete={() => c.id && handleDelete(c.id)}
-            onEnter={() => setParent(c)}
-          />
-        ))}
-      </div>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={categories.map(c => c.id!)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-2">
+            {categories.map((c) => (
+              <SortableCategoryCard
+                key={c.id}
+                category={c}
+                onEdit={() => setEdit(c)}
+                onDelete={() => c.id && handleDelete(c.id)}
+                onEnter={() => setParent(c)}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
 
       <button
         onClick={() => setEdit({ name: '', icon: '📦', color: '#9E9E9E', parentId: parent?.id })}
@@ -118,15 +144,43 @@ export default function CategoriesManager({ onBack }: { onBack: () => void }) {
   )
 }
 
-function CategoryCard({ category, onEdit, onDelete, onEnter }: {
+function SortableCategoryCard({ category, onEdit, onDelete, onEnter }: {
   category: Category
   onEdit: () => void
   onDelete: () => void
   onEnter: () => void
 }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: category.id! })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}>
+      <CategoryCard
+        category={category}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        onEnter={onEnter}
+        dragListeners={listeners}
+      />
+    </div>
+  )
+}
+
+function CategoryCard({ category, onEdit, onDelete, onEnter, dragListeners, dragHandleRef }: {
+  category: Category
+  onEdit: () => void
+  onDelete: () => void
+  onEnter: () => void
+  dragListeners?: Record<string, Function>
+  dragHandleRef?: (el: HTMLButtonElement | null) => void
+}) {
   const hasSubs = useHasSubcategories(category.id!)
   return (
     <div className="bg-white rounded-xl p-3 shadow-sm flex items-center gap-3">
+      <button ref={dragHandleRef} {...dragListeners} className="cursor-grab text-gray-400 text-sm touch-none px-1">⠿</button>
       <span className="text-2xl">{category.icon}</span>
       <button
         onClick={onEnter}
