@@ -25,7 +25,7 @@ export default defineConfig({
       },
     }),
   ],
-  base: '/calc-money/',
+  base: '/MoneyCheck/',
   resolve: {
     alias: {
       '@': '/src',
