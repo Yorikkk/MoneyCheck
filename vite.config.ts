@@ -17,11 +17,15 @@ export default defineConfig({
         theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',
-        start_url: '/',
+        start_url: '.',
         icons: [
           { src: 'icons/icon-192x192.svg', sizes: '192x192', type: 'image/svg+xml' },
           { src: 'icons/icon-512x512.svg', sizes: '512x512', type: 'image/svg+xml' },
         ],
+      },
+      workbox: {
+        navigateFallback: '/MoneyCheck/',
+        globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
       },
     }),
   ],
