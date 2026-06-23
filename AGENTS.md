@@ -48,13 +48,16 @@ No test, lint, or format commands exist. No CI.
 - **React 19 + TypeScript strict** — `noUnusedLocals`, `noUnusedParameters` on in `tsconfig.app.json`
 - **Vite 6** — `@/` → `src/` alias
 - **Tailwind CSS 4** — CSS-first: `@import "tailwindcss"` in `src/index.css`, no config file
-- **Dexie 4** — 9 tables (schema v9): `transactions`, `categories`, `budgets`, `familyMembers`, `accountTypes`, `banks`, `accounts`, `debts`, `debtPayments`
-- **Reactivity** — `useLiveQuery` from `dexie-react-hooks` in `src/hooks/useDb.ts` (re-renders on IndexedDB change)
-- **HashRouter** — not BrowserRouter
-- **PWA** — `vite-plugin-pwa` with auto-update service worker
-- **React Router v7** — 6 routes: Dashboard (`/`), AddExpense (`/add`), Balance (`/balance`), Transactions (`/transactions`), Reports (`/reports`), Settings (`/settings`)
+- **Dexie 4** — 10 tables (schema v10): `transactions`, `categories`, `budgets`, `familyMembers`, `accountTypes`, `banks`, `accounts`, `debts`, `debtPayments`, `cashbacks`
+- **Reactivity** — `useLiveQuery` from `dexie-react-hooks` in `src/hooks/useDb.ts` (re-renders on IndexedDB change); also async CRUD functions in `src/db/*.ts`
+- **HashRouter** — not BrowserRouter. 7 routes (6 + settings sub-views)
+- **PWA** — `vite-plugin-pwa` with auto-update service worker (`registerType: 'autoUpdate'`)
+- **React Router v7** — 6 top routes: Dashboard (`/`), AddExpense (`/add`), Balance (`/balance`), Transactions (`/transactions`), Reports (`/reports`), Settings (`/settings`)
 - **Zustand 5** — UI state overlay (not data)
 - **TanStack Query 5** — wired in `App.tsx` but unused (planned for future sync)
+- **@dnd-kit** — drag-and-drop reordering in settings managers (categories, accounts, etc.)
+- **recharts** — charts in Reports page
+- **dayjs** — date formatting in `src/lib/utils.ts`
 
 ## DB
 
