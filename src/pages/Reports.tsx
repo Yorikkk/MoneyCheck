@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import dayjs from 'dayjs'
-import { useAllTransactions, useAccounts, useCategories } from '@/hooks/useDb'
+import { useAllTransactions, useAccounts, useBanks, useCategories } from '@/hooks/useDb'
 import { formatCurrency } from '@/lib/utils'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -15,6 +15,7 @@ export default function Reports() {
   const [period, setPeriod] = useState(3)
   const allTx = useAllTransactions() ?? []
   const accounts = useAccounts() ?? []
+  const banks = useBanks() ?? []
   const categories = useCategories() ?? []
 
   const months = useMemo(() => {
@@ -129,7 +130,10 @@ export default function Reports() {
           {accounts.map((a) => (
             <div key={a.id} className="flex items-center gap-3 text-sm">
               <span className="text-lg">{a.icon}</span>
-              <span className="flex-1">{a.name}</span>
+              <div className="flex-1 min-w-0">
+                <div className="truncate">{a.name}</div>
+                <div className="text-xs text-gray-400 truncate">{banks.find((b) => b.id === a.bankId)?.name}</div>
+              </div>
               <span className="font-semibold">{formatCurrency(a.balance)}</span>
             </div>
           ))}

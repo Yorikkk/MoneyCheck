@@ -282,6 +282,7 @@ export default function AddExpense() {
                   >
                     <span className="text-2xl">{a.icon}</span>
                     <span className="text-xs truncate w-full text-center">{a.name}</span>
+                    <span className="text-[10px] text-gray-400 truncate w-full text-center">{getBankLabel(a.bankId)}</span>
                     <span className="text-[10px] text-gray-400 truncate w-full text-center">{formatCurrency(a.balance)}</span>
                   </button>
                 ))}
@@ -304,6 +305,7 @@ export default function AddExpense() {
               >
                 <span className="text-2xl">{a.icon}</span>
                 <span className="text-xs truncate w-full text-center">{a.name}</span>
+                <span className="text-[10px] text-gray-400 truncate w-full text-center">{getBankLabel(a.bankId)}</span>
                 <span className="text-[10px] text-gray-400 truncate w-full text-center">{formatCurrency(a.balance)}</span>
               </button>
             ))}
