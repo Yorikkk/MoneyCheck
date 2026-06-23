@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import dayjs from 'dayjs'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAllTransactions, useAccounts, useCategories, useRootCategories, useSubcategories, useBanks } from '@/hooks/useDb'
 import { deleteTransaction, updateTransaction, updateAccount, hasSubcategories } from '@/db'
 import { formatCurrency } from '@/lib/utils'
@@ -9,6 +9,7 @@ import type { Transaction } from '@/db'
 export default function Transactions() {
   const location = useLocation()
   const locationState = location.state as { filterAccount?: number } | null
+  const navigate = useNavigate()
 
   const allTx = useAllTransactions() ?? []
   const accounts = useAccounts() ?? []
@@ -81,7 +82,15 @@ export default function Transactions() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">История</h1>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold">История</h1>
+        <button
+          onClick={() => navigate('/add', { state: { accountId: filterAccount } })}
+          className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-600 text-white text-lg font-bold"
+        >
+          +
+        </button>
+      </div>
 
       <div className="flex gap-2 mb-4">
         <select

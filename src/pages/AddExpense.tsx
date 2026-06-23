@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import dayjs from 'dayjs'
 import { useRootCategories, useSubcategories, useAccounts, useAccountTypes, useBanks } from '@/hooks/useDb'
 import { addTransaction, updateAccount, hasSubcategories } from '@/db'
@@ -10,10 +10,13 @@ type Tab = 'expense' | 'income' | 'transfer'
 
 export default function AddExpense() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const locationState = location.state as { accountId?: number } | null
+
   const [type, setType] = useState<Tab>('expense')
   const [amount, setAmount] = useState('')
   const [categoryId, setCategoryId] = useState<number | null>(null)
-  const [accountId, setAccountId] = useState<number | null>(null)
+  const [accountId, setAccountId] = useState<number | null>(locationState?.accountId ?? null)
   const [transferToAccountId, setTransferToAccountId] = useState<number | null>(null)
   const [date, setDate] = useState(dayjs().format('YYYY-MM-DD'))
   const [description, setDescription] = useState('')
@@ -23,6 +26,12 @@ export default function AddExpense() {
   const [place, setPlace] = useState('')
   const [mcc, setMcc] = useState('')
   const [browseParent, setBrowseParent] = useState<Category | null>(null)
+
+  useEffect(() => {
+    if (locationState?.accountId) {
+      setAccountId(locationState.accountId)
+    }
+  }, [locationState?.accountId])
 
   const placeError = place.length > 30 ? 'Максимум 30 символов' : ''
 
