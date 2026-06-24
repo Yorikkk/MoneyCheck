@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect } from 'react'
 import dayjs from 'dayjs'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useAllTransactions, useAccounts, useCategories, useRootCategories, useSubcategories, useBanks } from '@/hooks/useDb'
-import { deleteTransaction, updateTransaction, updateAccount, hasSubcategories } from '@/db'
+import { useAllTransactions, useAccounts, useCategories, useBanks } from '@/hooks/useDb'
+import { deleteTransaction, updateAccount } from '@/db'
 import { formatCurrency } from '@/lib/utils'
 import type { Transaction } from '@/db'
 
@@ -23,7 +23,6 @@ export default function Transactions() {
 
   const [filterAccount, setFilterAccount] = useState<number | null>(locationState?.filterAccount ?? null)
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense' | 'transfer'>('all')
-  const [editTx, setEditTx] = useState<Transaction | null>(null)
 
   useEffect(() => {
     if (locationState?.filterAccount) {
@@ -64,20 +63,6 @@ export default function Transactions() {
       }
     }
     await deleteTransaction(tx.id!)
-  }
-
-  if (editTx) {
-    return (
-      <EditForm
-        tx={editTx}
-        accounts={accounts}
-        onSave={async (changes) => {
-          await updateTransaction(editTx.id!, changes)
-          setEditTx(null)
-        }}
-        onCancel={() => setEditTx(null)}
-      />
-    )
   }
 
   return (
@@ -133,7 +118,7 @@ export default function Transactions() {
                   <div
                     key={tx.id}
                     className="bg-white rounded-xl p-3 shadow-sm flex items-center gap-3 cursor-pointer"
-                    onClick={() => { if (tx.type !== 'transfer') setEditTx(tx) }}
+                    onClick={() => navigate('/add', { state: { editTx: tx } })}
                   >
                     {tx.type === 'transfer' ? (
                       <>
@@ -195,139 +180,3 @@ export default function Transactions() {
   )
 }
 
-function EditForm({
-  tx, accounts, onSave, onCancel,
-}: {
-  tx: Transaction
-  accounts: any[]
-  onSave: (changes: Partial<Transaction>) => Promise<void>
-  onCancel: () => void
-}) {
-  const [amount, setAmount] = useState(String(tx.amount))
-  const [categoryId, setCategoryId] = useState(tx.categoryId)
-  const [accountId, setAccountId] = useState(tx.accountId)
-  const [date, setDate] = useState(dayjs(tx.date).format('YYYY-MM-DD'))
-  const [description, setDescription] = useState(tx.description)
-  const [mcc, setMcc] = useState(String(tx.mcc ?? ''))
-  const [saving, setSaving] = useState(false)
-  const [browseParent, setBrowseParent] = useState<any>(null)
-
-  const txType = tx.type === 'transfer' ? undefined : tx.type
-  const rootCategories = useRootCategories(txType) ?? []
-  const subCategories = browseParent ? (useSubcategories(browseParent.id!) ?? []) : []
-  const categories = browseParent ? subCategories : rootCategories
-
-  const selectedCategory = (browseParent ? subCategories : rootCategories).find((c) => c.id === categoryId)
-
-  async function handleSave() {
-    setSaving(true)
-    await onSave({
-      amount: Number(amount) || 0,
-      categoryId,
-      accountId,
-      date: new Date(date),
-      description: description.trim(),
-      mcc: mcc ? Number(mcc) : undefined,
-    })
-    setSaving(false)
-  }
-
-  return (
-    <div>
-      <div className="flex items-center gap-3 mb-4">
-        <button onClick={onCancel} className="text-blue-600 text-lg">←</button>
-        <h2 className="text-xl font-bold">Редактировать</h2>
-      </div>
-
-      <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
-        <input
-          type="number"
-          className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-        />
-        {txType && (
-          <div>
-            {browseParent && (
-              <button
-                onClick={() => setBrowseParent(null)}
-                className="text-sm text-blue-600 mb-2 flex items-center gap-1"
-              >
-                ← {browseParent.icon} {browseParent.name}
-              </button>
-            )}
-            <div className="grid grid-cols-4 gap-2">
-              {categories.map((cat: any) => (
-                <button
-                  key={cat.id}
-                  onClick={async () => {
-                    const hasSubs = await hasSubcategories(cat.id!)
-                    if (hasSubs) {
-                      setBrowseParent(cat)
-                    } else {
-                      setCategoryId(cat.id!)
-                      if (!mcc && cat.mcc) {
-                        setMcc(String(cat.mcc))
-                      }
-                      setBrowseParent(null)
-                    }
-                  }}
-                  className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-all ${
-                    categoryId === cat.id
-                      ? 'bg-blue-50 ring-2 ring-blue-500'
-                      : 'bg-white shadow-sm'
-                  }`}
-                >
-                  <span className="text-2xl">{cat.icon}</span>
-                  <span className="text-xs truncate w-full text-center">{cat.name}</span>
-                </button>
-              ))}
-            </div>
-            {selectedCategory && (
-              <div className="mt-1">
-                <input
-                  type="number"
-                  value={mcc}
-                  onChange={(e) => setMcc(e.target.value)}
-                  className="w-full text-xs font-mono text-center border border-gray-200 rounded-lg px-2 py-1.5"
-                  placeholder={`MCC-код${selectedCategory.mcc ? ` (из категории: ${selectedCategory.mcc})` : ''}`}
-                />
-              </div>
-            )}
-          </div>
-        )}
-        <select
-          className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white"
-          value={accountId}
-          onChange={(e) => setAccountId(Number(e.target.value))}
-        >
-          {accounts.map((a: any) => (
-            <option key={a.id} value={a.id}>{a.icon} {a.name}</option>
-          ))}
-        </select>
-        <input
-          type="date"
-          className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-        />
-        <input
-          className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm"
-          placeholder="Описание"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="w-full py-2.5 rounded-lg bg-blue-600 text-white text-sm font-medium"
-        >
-          {saving ? '...' : 'Сохранить'}
-        </button>
-        <button onClick={onCancel} className="w-full py-2.5 rounded-lg border border-gray-300 text-sm">
-          Отмена
-        </button>
-      </div>
-    </div>
-  )
-}

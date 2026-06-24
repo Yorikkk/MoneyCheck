@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import dayjs from 'dayjs'
 import { useRootCategories, useSubcategories, useAccounts, useAccountTypes, useBanks } from '@/hooks/useDb'
-import { addTransaction, updateAccount, hasSubcategories } from '@/db'
-import type { Category } from '@/db'
+import { addTransaction, updateTransaction, updateAccount, hasSubcategories } from '@/db'
+import type { Transaction, Category } from '@/db'
 import { formatCurrency } from '@/lib/utils'
 
 type Tab = 'expense' | 'income' | 'transfer'
@@ -11,7 +11,9 @@ type Tab = 'expense' | 'income' | 'transfer'
 export default function AddExpense() {
   const navigate = useNavigate()
   const location = useLocation()
-  const locationState = location.state as { accountId?: number } | null
+  const locationState = location.state as { accountId?: number; editTx?: Transaction } | null
+
+  const isEditing = !!locationState?.editTx
 
   const [type, setType] = useState<Tab>('expense')
   const [amount, setAmount] = useState('')
@@ -28,10 +30,23 @@ export default function AddExpense() {
   const [browseParent, setBrowseParent] = useState<Category | null>(null)
 
   useEffect(() => {
-    if (locationState?.accountId) {
+    if (locationState?.editTx) {
+      const tx = locationState.editTx
+      setType(tx.type)
+      setAmount(String(tx.amount))
+      setCategoryId(tx.categoryId ?? null)
+      setAccountId(tx.accountId)
+      setTransferToAccountId(tx.transferToAccountId ?? null)
+      setDate(dayjs(tx.date).format('YYYY-MM-DD'))
+      setDescription(tx.description)
+      setPrincipalAmount(tx.principalAmount ? String(tx.principalAmount) : '')
+      setInterestAmount(tx.interestAmount ? String(tx.interestAmount) : '')
+      setMcc(tx.mcc ? String(tx.mcc) : '')
+      setBrowseParent(null)
+    } else if (locationState?.accountId) {
       setAccountId(locationState.accountId)
     }
-  }, [locationState?.accountId])
+  }, [locationState])
 
   const placeError = place.length > 30 ? 'Максимум 30 символов' : ''
 
@@ -78,46 +93,121 @@ export default function AddExpense() {
     if (!total || !isFormValid() || !!placeError) return
     setSaving(true)
 
-    if (type === 'transfer') {
-      await addTransaction({
-        amount: total,
-        description: description.trim(),
-        accountId: accountId!,
-        familyMemberId: selectedAccount!.familyMemberId,
-        date: new Date(date),
-        type: 'transfer',
-        transferToAccountId: transferToAccountId!,
-        principalAmount: isDestLoanType ? (Number(principalAmount) || null) : null,
-        interestAmount: isDestLoanType ? (Number(interestAmount) || null) : null,
-      })
-      await updateAccount(accountId!, { balance: selectedAccount!.balance - total })
-      const toAccount = accounts.find((a) => a.id === transferToAccountId)!
-      if (isDestLoanType && Number(principalAmount)) {
-        await updateAccount(transferToAccountId!, { balance: toAccount.balance - Number(principalAmount) })
+    const oldTx = isEditing ? locationState!.editTx! : null
+
+    if (isEditing && oldTx) {
+      if (type === 'transfer') {
+        // ---- transfer edit ----
+        const oldFromAcc = accounts.find((a) => a.id === oldTx.accountId)
+        const newFromAcc = accounts.find((a) => a.id === accountId)
+        const newToAcc = accounts.find((a) => a.id === transferToAccountId)
+        const newToType = newToAcc ? accountTypes.find((t) => t.id === newToAcc.typeId) : undefined
+        const newToLoan = newToType?.isLoan ?? false
+
+        const oldToAcc = accounts.find((a) => a.id === oldTx.transferToAccountId)
+        const oldToType = oldToAcc ? accountTypes.find((t) => t.id === oldToAcc.typeId) : undefined
+        const oldToLoan = oldToType?.isLoan ?? false
+        const oldToEffect = oldToLoan && oldTx.principalAmount ? -oldTx.principalAmount : oldTx.amount
+        const newToEffect = newToLoan && Number(principalAmount) ? -Number(principalAmount) : total
+
+        if (accountId === oldTx.accountId && oldFromAcc) {
+          await updateAccount(accountId!, { balance: oldFromAcc.balance + oldTx.amount - total })
+        } else {
+          if (oldFromAcc) await updateAccount(oldTx.accountId, { balance: oldFromAcc.balance + oldTx.amount })
+          if (newFromAcc) await updateAccount(accountId!, { balance: newFromAcc.balance - total })
+        }
+
+        if (transferToAccountId === oldTx.transferToAccountId && oldToAcc) {
+          await updateAccount(transferToAccountId!, { balance: oldToAcc.balance - oldToEffect + newToEffect })
+        } else {
+          if (oldToAcc) await updateAccount(oldTx.transferToAccountId!, { balance: oldToAcc.balance - oldToEffect })
+          if (newToAcc) await updateAccount(transferToAccountId!, { balance: newToAcc.balance + newToEffect })
+        }
+
+        await updateTransaction(oldTx.id!, {
+          amount: total,
+          description: description.trim(),
+          accountId: accountId!,
+          date: new Date(date),
+          transferToAccountId: transferToAccountId!,
+          principalAmount: isDestLoanType ? (Number(principalAmount) || null) : null,
+          interestAmount: isDestLoanType ? (Number(interestAmount) || null) : null,
+        })
       } else {
-        await updateAccount(transferToAccountId!, { balance: toAccount.balance + total })
+        // ---- income / expense edit ----
+        const oldAcc = accounts.find((a) => a.id === oldTx.accountId)
+        const oldAccType = oldAcc ? accountTypes.find((t) => t.id === oldAcc.typeId) : undefined
+        const oldIsLoan = oldAccType?.isLoan ?? false
+
+        function getEffect(t: string, amt: number, prin: number | null | undefined, loan: boolean): number {
+          if (t === 'income') return amt
+          if (loan && prin) return -prin
+          return -amt
+        }
+
+        const oldEffect = getEffect(oldTx.type, oldTx.amount, oldTx.principalAmount, oldIsLoan)
+        const newEffect = type === 'income' ? total : -(showLoanFields && Number(principalAmount) ? Number(principalAmount) : total)
+
+        if (accountId === oldTx.accountId && oldAcc) {
+          await updateAccount(accountId!, { balance: oldAcc.balance - oldEffect + newEffect })
+        } else {
+          if (oldAcc) await updateAccount(oldTx.accountId, { balance: oldAcc.balance - oldEffect })
+          if (selectedAccount) await updateAccount(accountId!, { balance: selectedAccount.balance + newEffect })
+        }
+
+        await updateTransaction(oldTx.id!, {
+          amount: total,
+          description: description.trim(),
+          categoryId: categoryId!,
+          accountId: accountId!,
+          date: new Date(date),
+          type: type as 'income' | 'expense',
+          principalAmount: showLoanFields ? (Number(principalAmount) || null) : null,
+          interestAmount: showLoanFields ? (Number(interestAmount) || null) : null,
+          mcc: mcc ? Number(mcc) : undefined,
+        })
       }
     } else {
-      const txData = {
-        amount: total,
-        description: description.trim(),
-        categoryId: categoryId!,
-        accountId: accountId!,
-        familyMemberId: selectedAccount!.familyMemberId,
-        date: new Date(date),
-        type,
-        principalAmount: showLoanFields ? (Number(principalAmount) || null) : null,
-        interestAmount: showLoanFields ? (Number(interestAmount) || null) : null,
-        mcc: mcc ? Number(mcc) : undefined,
-      }
-
-      await addTransaction(txData)
-      if (type === 'income') {
-        await updateAccount(accountId!, { balance: selectedAccount!.balance + total })
-      } else if (showLoanFields && Number(principalAmount)) {
-        await updateAccount(accountId!, { balance: selectedAccount!.balance - Number(principalAmount) })
-      } else {
+      // ---- add new transaction ----
+      if (type === 'transfer') {
+        await addTransaction({
+          amount: total,
+          description: description.trim(),
+          accountId: accountId!,
+          familyMemberId: selectedAccount!.familyMemberId,
+          date: new Date(date),
+          type: 'transfer',
+          transferToAccountId: transferToAccountId!,
+          principalAmount: isDestLoanType ? (Number(principalAmount) || null) : null,
+          interestAmount: isDestLoanType ? (Number(interestAmount) || null) : null,
+        })
         await updateAccount(accountId!, { balance: selectedAccount!.balance - total })
+        const toAccount = accounts.find((a) => a.id === transferToAccountId)!
+        if (isDestLoanType && Number(principalAmount)) {
+          await updateAccount(transferToAccountId!, { balance: toAccount.balance - Number(principalAmount) })
+        } else {
+          await updateAccount(transferToAccountId!, { balance: toAccount.balance + total })
+        }
+      } else {
+        await addTransaction({
+          amount: total,
+          description: description.trim(),
+          categoryId: categoryId!,
+          accountId: accountId!,
+          familyMemberId: selectedAccount!.familyMemberId,
+          date: new Date(date),
+          type,
+          principalAmount: showLoanFields ? (Number(principalAmount) || null) : null,
+          interestAmount: showLoanFields ? (Number(interestAmount) || null) : null,
+          mcc: mcc ? Number(mcc) : undefined,
+        })
+        if (type === 'income') {
+          await updateAccount(accountId!, { balance: selectedAccount!.balance + total })
+        } else if (showLoanFields && Number(principalAmount)) {
+          await updateAccount(accountId!, { balance: selectedAccount!.balance - Number(principalAmount) })
+        } else {
+          await updateAccount(accountId!, { balance: selectedAccount!.balance - total })
+        }
       }
     }
 
@@ -130,7 +220,7 @@ export default function AddExpense() {
     setInterestAmount('')
     setMcc('')
     setSaving(false)
-    navigate('/')
+    navigate('/transactions')
   }
 
   const tabs: { key: Tab; label: string }[] = [
@@ -145,10 +235,11 @@ export default function AddExpense() {
         {tabs.map(({ key, label }) => (
           <button
             key={key}
+            disabled={isEditing}
             onClick={() => { setType(key); setCategoryId(null); setTransferToAccountId(null); setPrincipalAmount(''); setInterestAmount(''); setMcc(''); setBrowseParent(null) }}
             className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
               type === key ? 'bg-white text-blue-600 shadow-sm font-bold' : 'text-gray-500'
-            }`}
+            } ${isEditing ? 'opacity-60 cursor-not-allowed' : ''}`}
           >
             {label}
           </button>
@@ -387,13 +478,15 @@ export default function AddExpense() {
         disabled={saving || !getTotalAmount() || !isFormValid() || !!placeError}
         className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold text-sm disabled:opacity-50"
       >
-        {saving
-          ? 'Сохранение...'
-          : type === 'transfer'
-            ? 'Перевести'
-            : type === 'expense'
-              ? 'Записать расход'
-              : 'Записать доход'}
+{saving
+            ? 'Сохранение...'
+            : isEditing
+              ? 'Сохранить'
+              : type === 'transfer'
+                ? 'Перевести'
+                : type === 'expense'
+                  ? 'Записать расход'
+                  : 'Записать доход'}
       </button>
     </div>
   )
