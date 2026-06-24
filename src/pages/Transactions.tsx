@@ -18,7 +18,7 @@ export default function Transactions() {
 
   function getBankLabel(bankId: number) {
     const bank = banks.find((b) => b.id === bankId)
-    return bank ? bank.name : ''
+    return bank ? `${bank.icon} ${bank.name}` : ''
   }
 
   const [filterAccount, setFilterAccount] = useState<number | null>(locationState?.filterAccount ?? null)
@@ -113,7 +113,8 @@ export default function Transactions() {
             <div className="space-y-1">
               {txs.map((tx) => {
                 const cat = categories.find((c) => c.id === tx.categoryId)
-                const account = accounts.find((a) => a.id === tx.accountId)
+const account = accounts.find((a) => a.id === tx.accountId)
+                const toAccount = accounts.find((a) => a.id === tx.transferToAccountId)
                 return (
                   <div
                     key={tx.id}
@@ -128,7 +129,7 @@ export default function Transactions() {
                             Перевод {tx.description ? `, ${tx.description}` : ''}
                           </div>
                           <div className="text-xs text-gray-400 truncate">
-                            {account?.name} → {accounts.find((a) => a.id === tx.transferToAccountId)?.name}
+                            {account?.name} · {getBankLabel(account?.bankId ?? 0)} → {toAccount?.name} · {getBankLabel(toAccount?.bankId ?? 0)}
                           </div>
                         </div>
                         <div className="text-right shrink-0">
