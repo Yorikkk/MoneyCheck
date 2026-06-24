@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import dayjs from 'dayjs'
 import { useAccountCashbacks, useCashbacks, useAllCategories } from '@/hooks/useDb'
 import { addAccountCashback, updateAccountCashback, deleteAccountCashback } from '@/db'
 import { formatPeriod } from '@/lib/utils'
-import type { Account, Cashback, AccountCashback } from '@/db'
+import type { Account, Cashback, AccountCashback, Category } from '@/db'
 
 interface Props {
   account: Account
@@ -27,6 +27,7 @@ export default function AccountCashbacksManager({ account, bankName, bankIcon, o
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState<number | null>(null)
   const [cashbackId, setCashbackId] = useState<number | ''>('')
+  const [categoryId, setCategoryId] = useState<number | ''>('')
   const [percent, setPercent] = useState(0)
   const [startDate, setStartDate] = useState<string>('')
   const [endDate, setEndDate] = useState<string>('')
@@ -38,10 +39,25 @@ export default function AccountCashbacksManager({ account, bankName, bankIcon, o
     bankCashbackMap[cb.id!] = cb
   }
 
+  const groupedCategories = useMemo(() => {
+    const roots: Category[] = []
+    const children: Record<number, Category[]> = {}
+    for (const c of allCategories) {
+      if (!c.parentId) {
+        roots.push(c)
+      } else {
+        if (!children[c.parentId]) children[c.parentId] = []
+        children[c.parentId].push(c)
+      }
+    }
+    return { roots, children }
+  }, [allCategories])
+
   function resetForm() {
     setShowForm(false)
     setEditId(null)
     setCashbackId('')
+    setCategoryId('')
     setPercent(0)
     setStartDate('')
     setEndDate('')
@@ -51,6 +67,7 @@ export default function AccountCashbacksManager({ account, bankName, bankIcon, o
     const dates = getInitialDates()
     setEditId(null)
     setCashbackId('')
+    setCategoryId('')
     setPercent(0)
     setStartDate(dayjs(dates.startDate).format('YYYY-MM-DD'))
     setEndDate(dayjs(dates.endDate).format('YYYY-MM-DD'))
@@ -60,6 +77,7 @@ export default function AccountCashbacksManager({ account, bankName, bankIcon, o
   function initEdit(ac: AccountCashback) {
     setEditId(ac.id!)
     setCashbackId(ac.cashbackId)
+    setCategoryId(ac.categoryId ?? '')
     setPercent(ac.percent)
     setStartDate(dayjs(ac.startDate).format('YYYY-MM-DD'))
     setEndDate(dayjs(ac.endDate).format('YYYY-MM-DD'))
@@ -72,6 +90,7 @@ export default function AccountCashbacksManager({ account, bankName, bankIcon, o
     const data = {
       accountId: account.id!,
       cashbackId: cashbackId as number,
+      categoryId: categoryId || undefined,
       percent,
       startDate: dayjs(startDate).startOf('day').toDate(),
       endDate: dayjs(endDate).endOf('day').toDate(),
@@ -131,10 +150,31 @@ export default function AccountCashbacksManager({ account, bankName, bankIcon, o
             <option value="">Выберите кешбек...</option>
             {bankCashbacks.map((cb) => (
               <option key={cb.id} value={cb.id}>
-                {cb.name}{cb.categoryId ? ` (${getCategoryName(cb.categoryId)})` : ''}
+                {cb.name}
               </option>
             ))}
           </select>
+
+          <div>
+            <label className="text-sm text-gray-500 mb-1 block">Категория (необязательно)</label>
+            <select
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : '')}
+            >
+              <option value="">— Без категории —</option>
+              {groupedCategories.roots.map((root) => (
+                <optgroup key={root.id} label={root.name}>
+                  <option value={root.id}>{root.name}</option>
+                  {(groupedCategories.children[root.id!] ?? []).map((child) => (
+                    <option key={child.id} value={child.id}>
+                      &nbsp;&nbsp;└ {child.name}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </div>
 
           <div>
             <label className="text-sm text-gray-500 mb-1 block">Процент</label>
@@ -195,7 +235,7 @@ export default function AccountCashbacksManager({ account, bankName, bankIcon, o
                   <div className="font-medium">{cb?.name ?? '—'}</div>
                   <div className="text-sm text-gray-500">
                     {ac.percent}%
-                    {cb?.categoryId && <> · {getCategoryName(cb.categoryId)}</>}
+                    {ac.categoryId && <> · {getCategoryName(ac.categoryId)}</>}
                   </div>
                   <div className="text-xs text-gray-400 mt-0.5">
                     {formatPeriod(ac.startDate, ac.endDate)}

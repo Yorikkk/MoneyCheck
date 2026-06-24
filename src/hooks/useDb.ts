@@ -201,8 +201,8 @@ export function useCashbackSummary(year: number, month: number) {
         let qualifying = transactions.filter(
           (t) => t.accountId === account.id && t.type === 'expense' && t.amount > 0
         )
-        if (cb.categoryId) {
-          qualifying = qualifying.filter((t) => t.categoryId === cb.categoryId)
+        if (ac.categoryId) {
+          qualifying = qualifying.filter((t) => t.categoryId === ac.categoryId)
         }
         if (cb.mccList && cb.mccList.length > 0) {
           qualifying = qualifying.filter((t) => t.mcc != null && cb.mccList!.includes(t.mcc))
@@ -210,7 +210,7 @@ export function useCashbackSummary(year: number, month: number) {
 
         const totalSpent = qualifying.reduce((s, t) => s + t.amount, 0)
         const calculatedAmount = Math.round(totalSpent * (ac.percent / 100) * 100) / 100
-        const category = cb.categoryId ? catMap.get(cb.categoryId) : undefined
+        const category = ac.categoryId ? catMap.get(ac.categoryId) : undefined
 
         items.push({
           name: cb.name,

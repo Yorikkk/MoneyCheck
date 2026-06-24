@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react'
-import { useCashbacks, useAllCategories } from '@/hooks/useDb'
+import { useState } from 'react'
+import { useCashbacks } from '@/hooks/useDb'
 import { addCashback, updateCashback, deleteCashback } from '@/db'
-import type { Cashback, Category } from '@/db'
+import type { Cashback } from '@/db'
 
 interface Props {
   bankId: number
@@ -12,47 +12,10 @@ interface Props {
 
 export default function CashbacksManager({ bankId, bankName, bankIcon, onBack }: Props) {
   const cashbacks = useCashbacks(bankId) ?? []
-  const allCategories = useAllCategories() ?? []
 
   const [edit, setEdit] = useState<Partial<Cashback> & { mccInputs: string[] } | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-
-  const parentMap = useMemo(() => {
-    const map: Record<number, Category> = {}
-    for (const c of allCategories) {
-      if (c.parentId) continue
-      map[c.id!] = c
-    }
-    return map
-  }, [allCategories])
-
-  const groupedCategories = useMemo(() => {
-    const roots: Category[] = []
-    const children: Record<number, Category[]> = {}
-    for (const c of allCategories) {
-      if (!c.parentId) {
-        roots.push(c)
-      } else {
-        if (!children[c.parentId]) children[c.parentId] = []
-        children[c.parentId].push(c)
-      }
-    }
-    return { roots, children }
-  }, [allCategories])
-
-  function getCategoryLabel(cat: Category): string {
-    if (cat.parentId && parentMap[cat.parentId]) {
-      return `${parentMap[cat.parentId].name} → ${cat.name}`
-    }
-    return cat.name
-  }
-
-  function getCategoryName(categoryId?: number | null): string {
-    if (!categoryId) return ''
-    const cat = allCategories.find((c) => c.id === categoryId)
-    return cat ? getCategoryLabel(cat) : ''
-  }
 
   function initForm(cashback?: Cashback) {
     if (cashback) {
@@ -64,7 +27,6 @@ export default function CashbacksManager({ bankId, bankName, bankIcon, onBack }:
       setEdit({
         bankId,
         name: '',
-        categoryId: undefined,
         mccList: [],
         mccInputs: [],
       })
@@ -109,7 +71,6 @@ export default function CashbacksManager({ bankId, bankName, bankIcon, onBack }:
     const data = {
       bankId,
       name: edit.name.trim(),
-      categoryId: edit.categoryId || undefined,
       mccList: mccList.length > 0 ? mccList : undefined,
     }
 
@@ -162,27 +123,6 @@ export default function CashbacksManager({ bankId, bankName, bankIcon, onBack }:
           />
 
           <div>
-            <label className="text-sm text-gray-500 mb-1 block">Категория (необязательно)</label>
-            <select
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-              value={edit.categoryId ?? ''}
-              onChange={(e) => setEdit({ ...edit, categoryId: e.target.value ? Number(e.target.value) : undefined })}
-            >
-              <option value="">— Без категории —</option>
-              {groupedCategories.roots.map((root) => (
-                <optgroup key={root.id} label={root.name}>
-                  <option value={root.id}>{root.name}</option>
-                  {(groupedCategories.children[root.id!] ?? []).map((child) => (
-                    <option key={child.id} value={child.id}>
-                      &nbsp;&nbsp;└ {child.name}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-          </div>
-
-          <div>
             <label className="text-sm text-gray-500 mb-1 block">MCC коды (необязательно)</label>
             <div className="space-y-2">
               {edit.mccInputs.map((mcc, i) => (
@@ -231,11 +171,6 @@ export default function CashbacksManager({ bankId, bankName, bankIcon, onBack }:
             <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">
                 <div className="font-medium">{cb.name}</div>
-                <div className="text-sm text-gray-500">
-                  {cb.categoryId && (
-                    <>{getCategoryName(cb.categoryId)}</>
-                  )}
-                </div>
                 {cb.mccList && cb.mccList.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-1">
                     {cb.mccList.map((mcc) => (

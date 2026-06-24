@@ -103,7 +103,6 @@ export interface Cashback {
   id?: number
   bankId: number
   name: string
-  categoryId?: number
   mccList?: number[]
 }
 
@@ -112,6 +111,7 @@ export interface AccountCashback {
   accountId: number
   cashbackId: number
   percent: number
+  categoryId?: number
   startDate: Date
   endDate: Date
 }
@@ -354,6 +354,30 @@ db.version(17).stores({
     }
     seen.add(key)
   })
+})
+
+db.version(18).stores({
+  transactions: '++id, date, categoryId, type, accountId, transferToAccountId, familyMemberId',
+  categories: '++id, type, order, parentId',
+  budgets: '++id, [month+year], categoryId',
+  familyMembers: '++id',
+  accountTypes: '++id, order',
+  accounts: '++id, familyMemberId, order, bankId, typeId',
+  debts: '++id, status, familyMemberId',
+  debtPayments: '++id, debtId',
+  banks: '++id, name, order',
+  cashbacks: '++id, bankId, &[bankId+name]',
+  accountCashbacks: '++id, accountId, cashbackId, categoryId, [accountId+cashbackId]',
+}).upgrade(async (tx) => {
+  const allCashbacks = await tx.table('cashbacks').toArray()
+  for (const cb of allCashbacks) {
+    if (cb.categoryId != null) {
+      await tx.table('accountCashbacks')
+        .where('cashbackId').equals(cb.id)
+        .modify({ categoryId: cb.categoryId })
+    }
+    await tx.table('cashbacks').update(cb.id, { categoryId: undefined })
+  }
 })
 
 export { db }

@@ -37,7 +37,7 @@ export async function deleteCategory(id: number) {
   const [txCount, budgetCount, cashbackCount] = await Promise.all([
     db.transactions.where('categoryId').anyOf(allIds).count(),
     db.budgets.where('categoryId').anyOf(allIds).count(),
-    db.cashbacks.where('categoryId').anyOf(allIds).count(),
+    db.accountCashbacks.where('categoryId').anyOf(allIds).count(),
   ])
 
   if (txCount > 0 || budgetCount > 0 || cashbackCount > 0) {
