@@ -8,6 +8,23 @@ import { formatCurrency } from '@/lib/utils'
 
 type Tab = 'expense' | 'income' | 'transfer'
 
+function getSourceEffect(kind: string | undefined, type: string, amount: number): number {
+  if (kind === 'credit') {
+    return type === 'income' ? -amount : amount
+  }
+  return type === 'income' ? amount : -amount
+}
+
+function getDestEffect(kind: string | undefined, amount: number, principalAmount: number | null): number {
+  if (kind === 'mortgage' && principalAmount) {
+    return -principalAmount
+  }
+  if (kind === 'credit') {
+    return -amount
+  }
+  return amount
+}
+
 export default function AddExpense() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -59,6 +76,11 @@ export default function AddExpense() {
   const accountTypes = useAccountTypes() ?? []
   const banks = useBanks() ?? []
 
+  const typeKindMap: Record<number, string> = {}
+  for (const t of accountTypes) {
+    if (t.id != null) typeKindMap[t.id] = t.kind
+  }
+
   function getBankLabel(bankId: number) {
     const bank = banks.find((b) => b.id === bankId)
     return bank ? bank.name : ''
@@ -66,13 +88,12 @@ export default function AddExpense() {
 
   const selectedAccount = accounts.find((a) => a.id === accountId)
   const selectedType = accountTypes.find((t) => t.id === selectedAccount?.typeId)
-  const isMortgageType = selectedType?.kind === 'mortgage'
 
   const selectedDestAccount = type === 'transfer' ? accounts.find((a) => a.id === transferToAccountId) : undefined
   const selectedDestType = selectedDestAccount ? accountTypes.find((t) => t.id === selectedDestAccount?.typeId) : undefined
   const isDestMortgageType = selectedDestType?.kind === 'mortgage'
 
-  const showLoanFields = type !== 'transfer' ? isMortgageType : isDestMortgageType
+  const showLoanFields = type === 'transfer' && isDestMortgageType
 
   function getTotalAmount(): number {
     if (showLoanFields && principalAmount && interestAmount) {
@@ -100,21 +121,26 @@ export default function AddExpense() {
         // ---- transfer edit ----
         const oldFromAcc = accounts.find((a) => a.id === oldTx.accountId)
         const newFromAcc = accounts.find((a) => a.id === accountId)
+        const oldFromKind = oldFromAcc ? typeKindMap[oldFromAcc.typeId] : undefined
+        const newFromKind = newFromAcc ? typeKindMap[newFromAcc.typeId] : undefined
+
         const newToAcc = accounts.find((a) => a.id === transferToAccountId)
-        const newToType = newToAcc ? accountTypes.find((t) => t.id === newToAcc.typeId) : undefined
-        const newToMortgage = newToType?.kind === 'mortgage'
+        const newToKind = newToAcc ? typeKindMap[newToAcc.typeId] : undefined
 
         const oldToAcc = accounts.find((a) => a.id === oldTx.transferToAccountId)
-        const oldToType = oldToAcc ? accountTypes.find((t) => t.id === oldToAcc.typeId) : undefined
-        const oldToMortgage = oldToType?.kind === 'mortgage'
-        const oldToEffect = oldToMortgage && oldTx.principalAmount ? -oldTx.principalAmount : oldTx.amount
-        const newToEffect = newToMortgage && Number(principalAmount) ? -Number(principalAmount) : total
+        const oldToKind = oldToAcc ? typeKindMap[oldToAcc.typeId] : undefined
+
+        const oldToEffect = getDestEffect(oldToKind, oldTx.amount, oldTx.principalAmount ?? null)
+        const newToEffect = getDestEffect(newToKind, total, Number(principalAmount) || null)
+
+        const oldFromEffect = getSourceEffect(oldFromKind, 'transfer', oldTx.amount)
+        const newFromEffect = getSourceEffect(newFromKind, 'transfer', total)
 
         if (accountId === oldTx.accountId && oldFromAcc) {
-          await updateAccount(accountId!, { balance: oldFromAcc.balance + oldTx.amount - total })
+          await updateAccount(accountId!, { balance: oldFromAcc.balance - oldFromEffect + newFromEffect })
         } else {
-          if (oldFromAcc) await updateAccount(oldTx.accountId, { balance: oldFromAcc.balance + oldTx.amount })
-          if (newFromAcc) await updateAccount(accountId!, { balance: newFromAcc.balance - total })
+          if (oldFromAcc) await updateAccount(oldTx.accountId, { balance: oldFromAcc.balance - oldFromEffect })
+          if (newFromAcc) await updateAccount(accountId!, { balance: newFromAcc.balance + newFromEffect })
         }
 
         if (transferToAccountId === oldTx.transferToAccountId && oldToAcc) {
@@ -136,17 +162,10 @@ export default function AddExpense() {
       } else {
         // ---- income / expense edit ----
         const oldAcc = accounts.find((a) => a.id === oldTx.accountId)
-        const oldAccType = oldAcc ? accountTypes.find((t) => t.id === oldAcc.typeId) : undefined
-        const oldIsMortgage = oldAccType?.kind === 'mortgage'
+        const oldAccKind = oldAcc ? typeKindMap[oldAcc.typeId] : undefined
 
-        function getEffect(t: string, amt: number, prin: number | null | undefined, mortgage: boolean): number {
-          if (t === 'income') return amt
-          if (mortgage && prin) return -prin
-          return -amt
-        }
-
-        const oldEffect = getEffect(oldTx.type, oldTx.amount, oldTx.principalAmount, oldIsMortgage)
-        const newEffect = type === 'income' ? total : -(showLoanFields && Number(principalAmount) ? Number(principalAmount) : total)
+        const oldEffect = getSourceEffect(oldAccKind, oldTx.type, oldTx.amount)
+        const newEffect = getSourceEffect(selectedType?.kind, type, total)
 
         if (accountId === oldTx.accountId && oldAcc) {
           await updateAccount(accountId!, { balance: oldAcc.balance - oldEffect + newEffect })
@@ -162,14 +181,17 @@ export default function AddExpense() {
           accountId: accountId!,
           date: new Date(date),
           type: type as 'income' | 'expense',
-          principalAmount: showLoanFields ? (Number(principalAmount) || null) : null,
-          interestAmount: showLoanFields ? (Number(interestAmount) || null) : null,
+          principalAmount: null,
+          interestAmount: null,
           mcc: mcc ? Number(mcc) : undefined,
         })
       }
     } else {
       // ---- add new transaction ----
       if (type === 'transfer') {
+        const fromKind = typeKindMap[selectedAccount!.typeId]
+        const toKind = typeKindMap[accounts.find((a) => a.id === transferToAccountId)!.typeId]
+
         await addTransaction({
           amount: total,
           description: description.trim(),
@@ -181,12 +203,12 @@ export default function AddExpense() {
           principalAmount: isDestMortgageType ? (Number(principalAmount) || null) : null,
           interestAmount: isDestMortgageType ? (Number(interestAmount) || null) : null,
         })
-        await updateAccount(accountId!, { balance: selectedAccount!.balance - total })
+        await updateAccount(accountId!, { balance: selectedAccount!.balance + getSourceEffect(fromKind, 'transfer', total) })
         const toAccount = accounts.find((a) => a.id === transferToAccountId)!
         if (isDestMortgageType && Number(principalAmount)) {
           await updateAccount(transferToAccountId!, { balance: toAccount.balance - Number(principalAmount) })
         } else {
-          await updateAccount(transferToAccountId!, { balance: toAccount.balance + total })
+          await updateAccount(transferToAccountId!, { balance: toAccount.balance + getDestEffect(toKind, total, null) })
         }
       } else {
         await addTransaction({
@@ -197,17 +219,11 @@ export default function AddExpense() {
           familyMemberId: selectedAccount!.familyMemberId,
           date: new Date(date),
           type,
-          principalAmount: showLoanFields ? (Number(principalAmount) || null) : null,
-          interestAmount: showLoanFields ? (Number(interestAmount) || null) : null,
+          principalAmount: null,
+          interestAmount: null,
           mcc: mcc ? Number(mcc) : undefined,
         })
-        if (type === 'income') {
-          await updateAccount(accountId!, { balance: selectedAccount!.balance + total })
-        } else if (showLoanFields && Number(principalAmount)) {
-          await updateAccount(accountId!, { balance: selectedAccount!.balance - Number(principalAmount) })
-        } else {
-          await updateAccount(accountId!, { balance: selectedAccount!.balance - total })
-        }
+        await updateAccount(accountId!, { balance: selectedAccount!.balance + getSourceEffect(selectedType?.kind, type, total) })
       }
     }
 
@@ -346,22 +362,24 @@ export default function AddExpense() {
           <div className="mb-4">
             <div className="text-sm text-gray-500 mb-2 font-medium">Откуда</div>
             <div className="grid grid-cols-4 gap-2">
-              {accounts.map((a) => (
-                <button
-                  key={a.id}
-                  onClick={() => { setAccountId(a.id!); setPrincipalAmount(''); setInterestAmount('') }}
-                  className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-all ${
-                    accountId === a.id
-                      ? 'bg-blue-50 ring-2 ring-blue-500'
-                      : 'bg-white shadow-sm'
-                  }`}
-                >
-                  <span className="text-2xl">{a.icon}</span>
-                  <span className="text-xs truncate w-full text-center">{a.name}</span>
-                  <span className="text-[10px] text-gray-400 truncate w-full text-center">{getBankLabel(a.bankId)}</span>
-                  <span className="text-[10px] text-gray-400 truncate w-full text-center">{formatCurrency(a.balance)}</span>
-                </button>
-              ))}
+              {accounts
+                .filter((a) => typeKindMap[a.typeId] !== 'mortgage')
+                .map((a) => (
+                  <button
+                    key={a.id}
+                    onClick={() => { setAccountId(a.id!); setPrincipalAmount(''); setInterestAmount('') }}
+                    className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-all ${
+                      accountId === a.id
+                        ? 'bg-blue-50 ring-2 ring-blue-500'
+                        : 'bg-white shadow-sm'
+                    }`}
+                  >
+                    <span className="text-2xl">{a.icon}</span>
+                    <span className="text-xs truncate w-full text-center">{a.name}</span>
+                    <span className="text-[10px] text-gray-400 truncate w-full text-center">{getBankLabel(a.bankId)}</span>
+                    <span className="text-[10px] text-gray-400 truncate w-full text-center">{formatCurrency(a.balance)}</span>
+                  </button>
+                ))}
             </div>
           </div>
 
@@ -393,22 +411,24 @@ export default function AddExpense() {
         <div className="mb-4">
           <div className="text-sm text-gray-500 mb-2 font-medium">Счёт</div>
           <div className="grid grid-cols-4 gap-2">
-            {accounts.map((a) => (
-              <button
-                key={a.id}
-                onClick={() => { setAccountId(a.id!); setPrincipalAmount(''); setInterestAmount('') }}
-                className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-all ${
-                  accountId === a.id
-                    ? 'bg-blue-50 ring-2 ring-blue-500'
-                    : 'bg-white shadow-sm'
-                }`}
-              >
-                <span className="text-2xl">{a.icon}</span>
-                <span className="text-xs truncate w-full text-center">{a.name}</span>
-                <span className="text-[10px] text-gray-400 truncate w-full text-center">{getBankLabel(a.bankId)}</span>
-                <span className="text-[10px] text-gray-400 truncate w-full text-center">{formatCurrency(a.balance)}</span>
-              </button>
-            ))}
+            {accounts
+              .filter((a) => typeKindMap[a.typeId] !== 'mortgage')
+              .map((a) => (
+                <button
+                  key={a.id}
+                  onClick={() => { setAccountId(a.id!); setPrincipalAmount(''); setInterestAmount('') }}
+                  className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-all ${
+                    accountId === a.id
+                      ? 'bg-blue-50 ring-2 ring-blue-500'
+                      : 'bg-white shadow-sm'
+                  }`}
+                >
+                  <span className="text-2xl">{a.icon}</span>
+                  <span className="text-xs truncate w-full text-center">{a.name}</span>
+                  <span className="text-[10px] text-gray-400 truncate w-full text-center">{getBankLabel(a.bankId)}</span>
+                  <span className="text-[10px] text-gray-400 truncate w-full text-center">{formatCurrency(a.balance)}</span>
+                </button>
+              ))}
           </div>
         </div>
       )}
@@ -446,31 +466,6 @@ export default function AddExpense() {
             )}
           </>
         )}
-
-        {type !== 'transfer' && isMortgageType && (
-          <div className="bg-orange-50 rounded-lg p-3 space-y-2">
-            <div className="text-xs text-orange-600 font-medium">Платеж по кредиту</div>
-            <div className="flex gap-2">
-              <input
-                type="number"
-                placeholder="Тело кредита"
-                value={principalAmount}
-                onChange={(e) => setPrincipalAmount(e.target.value)}
-                className="flex-1 border border-orange-200 rounded-lg px-3 py-2 text-sm"
-              />
-              <input
-                type="number"
-                placeholder="Проценты"
-                value={interestAmount}
-                onChange={(e) => setInterestAmount(e.target.value)}
-                className="flex-1 border border-orange-200 rounded-lg px-3 py-2 text-sm"
-              />
-            </div>
-            <div className="text-xs text-orange-500 text-right">
-              Итого: {formatCurrency(Number(principalAmount) + Number(interestAmount))}
-            </div>
-          </div>
-        )}
       </div>
 
       <button
@@ -478,15 +473,15 @@ export default function AddExpense() {
         disabled={saving || !getTotalAmount() || !isFormValid() || !!placeError}
         className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold text-sm disabled:opacity-50"
       >
-{saving
-            ? 'Сохранение...'
-            : isEditing
-              ? 'Сохранить'
-              : type === 'transfer'
-                ? 'Перевести'
-                : type === 'expense'
-                  ? 'Записать расход'
-                  : 'Записать доход'}
+        {saving
+          ? 'Сохранение...'
+          : isEditing
+            ? 'Сохранить'
+            : type === 'transfer'
+              ? 'Перевести'
+              : type === 'expense'
+                ? 'Записать расход'
+                : 'Записать доход'}
       </button>
     </div>
   )

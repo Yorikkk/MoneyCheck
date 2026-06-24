@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import dayjs from 'dayjs'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useAllTransactions, useAccounts, useCategories, useBanks } from '@/hooks/useDb'
+import { useAllTransactions, useAccounts, useCategories, useBanks, useAccountTypes } from '@/hooks/useDb'
 import { deleteTransaction, updateAccount } from '@/db'
 import { formatCurrency } from '@/lib/utils'
 import type { Transaction } from '@/db'
@@ -15,6 +15,12 @@ export default function Transactions() {
   const accounts = useAccounts() ?? []
   const categories = useCategories() ?? []
   const banks = useBanks() ?? []
+  const accountTypes = useAccountTypes() ?? []
+
+  const typeKindMap: Record<number, string> = {}
+  for (const t of accountTypes) {
+    if (t.id != null) typeKindMap[t.id] = t.kind
+  }
 
   function getBankLabel(bankId: number) {
     const bank = banks.find((b) => b.id === bankId)
@@ -53,13 +59,33 @@ export default function Transactions() {
     if (tx.type === 'transfer') {
       const fromAccount = accounts.find((a) => a.id === tx.accountId)
       const toAccount = accounts.find((a) => a.id === tx.transferToAccountId)
-      if (fromAccount) await updateAccount(tx.accountId, { balance: fromAccount.balance + tx.amount })
-      if (toAccount) await updateAccount(tx.transferToAccountId!, { balance: toAccount.balance - tx.amount })
+      if (fromAccount) {
+        const fromKind = typeKindMap[fromAccount.typeId]
+        const fromEffect = fromKind === 'credit' ? tx.amount : -tx.amount
+        await updateAccount(tx.accountId, { balance: fromAccount.balance - fromEffect })
+      }
+      if (toAccount) {
+        const toKind = typeKindMap[toAccount.typeId]
+        const toEffect = toKind === 'mortgage' && tx.principalAmount
+          ? -tx.principalAmount
+          : toKind === 'credit'
+            ? -tx.amount
+            : tx.amount
+        await updateAccount(tx.transferToAccountId!, { balance: toAccount.balance - toEffect })
+      }
     } else {
       const account = accounts.find((a) => a.id === tx.accountId)
       if (account) {
-        const revert = tx.type === 'income' ? account.balance - tx.amount : account.balance + tx.amount
-        await updateAccount(tx.accountId, { balance: revert })
+        const kind = typeKindMap[account.typeId]
+        let effect: number
+        if (kind === 'credit') {
+          effect = tx.type === 'income' ? -tx.amount : tx.amount
+        } else if (kind === 'mortgage' && tx.principalAmount) {
+          effect = -tx.principalAmount
+        } else {
+          effect = tx.type === 'income' ? tx.amount : -tx.amount
+        }
+        await updateAccount(tx.accountId, { balance: account.balance - effect })
       }
     }
     await deleteTransaction(tx.id!)
