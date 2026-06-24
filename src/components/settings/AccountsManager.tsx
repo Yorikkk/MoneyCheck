@@ -7,6 +7,7 @@ import { useAccounts, useAccountTypes, useFamilyMembers, useBanks } from '@/hook
 import { addAccount, updateAccount, deleteAccount, reorderAccounts } from '@/db'
 import type { Account } from '@/db'
 import { ColorPicker } from '@/components/ui/ColorPicker'
+import { EmojiPicker } from '@/components/ui/EmojiPicker'
 import { formatCurrency } from '@/lib/utils'
 import AccountCashbacksManager from './AccountCashbacksManager'
 
@@ -68,6 +69,7 @@ export default function AccountsManager({ onBack }: { onBack: () => void }) {
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [showPicker, setShowPicker] = useState(false)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -176,13 +178,21 @@ export default function AccountsManager({ onBack }: { onBack: () => void }) {
             onChange={(e) => setEdit({ ...edit, name: e.target.value })}
             autoFocus
           />
-          <input
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-            placeholder="Иконка (emoji)"
-            value={edit.icon || ''}
-            onChange={(e) => setEdit({ ...edit, icon: e.target.value })}
-            maxLength={2}
-          />
+          <button
+            type="button"
+            onClick={() => setShowPicker(true)}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm flex items-center gap-2"
+          >
+            <span className="text-xl">{edit.icon || '🏦'}</span>
+            <span className="text-gray-400">Выбрать иконку</span>
+          </button>
+          {showPicker && (
+            <EmojiPicker
+              value={edit.icon || ''}
+              onChange={(emoji) => setEdit({ ...edit, icon: emoji })}
+              onClose={() => setShowPicker(false)}
+            />
+          )}
           <ColorPicker
             value={edit.color || '#2196F3'}
             onChange={(c) => setEdit({ ...edit, color: c })}

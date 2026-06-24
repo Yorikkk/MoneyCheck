@@ -3,12 +3,14 @@ import { useAccountTypes } from '@/hooks/useDb'
 import { addAccountType, updateAccountType, deleteAccountType } from '@/db'
 import type { AccountType } from '@/db'
 import { ColorPicker } from '@/components/ui/ColorPicker'
+import { EmojiPicker } from '@/components/ui/EmojiPicker'
 
 export default function AccountTypesManager({ onBack }: { onBack: () => void }) {
   const types = useAccountTypes() ?? []
   const [edit, setEdit] = useState<Partial<AccountType> | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [showPicker, setShowPicker] = useState(false)
 
   async function handleSave() {
     if (!edit || !edit.name?.trim()) return
@@ -55,13 +57,21 @@ export default function AccountTypesManager({ onBack }: { onBack: () => void }) 
             onChange={(e) => setEdit({ ...edit, name: e.target.value })}
             autoFocus
           />
-          <input
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-            placeholder="Иконка (emoji)"
-            value={edit.icon || ''}
-            onChange={(e) => setEdit({ ...edit, icon: e.target.value })}
-            maxLength={2}
-          />
+          <button
+            type="button"
+            onClick={() => setShowPicker(true)}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm flex items-center gap-2"
+          >
+            <span className="text-xl">{edit.icon || '💳'}</span>
+            <span className="text-gray-400">Выбрать иконку</span>
+          </button>
+          {showPicker && (
+            <EmojiPicker
+              value={edit.icon || ''}
+              onChange={(emoji) => setEdit({ ...edit, icon: emoji })}
+              onClose={() => setShowPicker(false)}
+            />
+          )}
           <ColorPicker
             value={edit.color || '#2196F3'}
             onChange={(c) => setEdit({ ...edit, color: c })}
