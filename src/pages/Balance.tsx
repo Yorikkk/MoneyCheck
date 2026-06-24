@@ -35,7 +35,10 @@ export default function Balance() {
         onClick={() => navigate('/transactions', { state: { filterAccount: account.id } })}
         className="bg-white rounded-xl p-4 shadow-sm flex items-center gap-3 cursor-pointer active:scale-[0.98] transition-transform"
       >
-        <span className="text-2xl">{account.icon}</span>
+        <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-lg shrink-0"
+             style={{ backgroundColor: account.color }}>
+          {account.icon}
+        </div>
         <div className="flex-1 min-w-0">
           <div className="text-sm font-medium">{account.name}</div>
           <div className="text-xs text-gray-400">{bankLabel}</div>

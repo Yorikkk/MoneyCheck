@@ -374,7 +374,10 @@ export default function AddExpense() {
                         : 'bg-white shadow-sm'
                     }`}
                   >
-                    <span className="text-2xl">{a.icon}</span>
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm shrink-0"
+                         style={{ backgroundColor: a.color }}>
+                      {a.icon}
+                    </div>
                     <span className="text-xs truncate w-full text-center">{a.name}</span>
                     <span className="text-[10px] text-gray-400 truncate w-full text-center">{getBankLabel(a.bankId)}</span>
                     <span className="text-[10px] text-gray-400 truncate w-full text-center">{formatCurrency(a.balance)}</span>
@@ -398,7 +401,10 @@ export default function AddExpense() {
                         : 'bg-white shadow-sm'
                     }`}
                   >
-                    <span className="text-2xl">{a.icon}</span>
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm shrink-0"
+                         style={{ backgroundColor: a.color }}>
+                      {a.icon}
+                    </div>
                     <span className="text-xs truncate w-full text-center">{a.name}</span>
                     <span className="text-[10px] text-gray-400 truncate w-full text-center">{getBankLabel(a.bankId)}</span>
                     <span className="text-[10px] text-gray-400 truncate w-full text-center">{formatCurrency(a.balance)}</span>
@@ -423,7 +429,10 @@ export default function AddExpense() {
                       : 'bg-white shadow-sm'
                   }`}
                 >
-                  <span className="text-2xl">{a.icon}</span>
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm shrink-0"
+                         style={{ backgroundColor: a.color }}>
+                      {a.icon}
+                    </div>
                   <span className="text-xs truncate w-full text-center">{a.name}</span>
                   <span className="text-[10px] text-gray-400 truncate w-full text-center">{getBankLabel(a.bankId)}</span>
                   <span className="text-[10px] text-gray-400 truncate w-full text-center">{formatCurrency(a.balance)}</span>
