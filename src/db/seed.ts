@@ -80,19 +80,23 @@ export async function seedDefaults() {
     ])
   }
 
-  if (await db.banks.count() === 0) {
-    await db.banks.bulkAdd([
-      { name: 'Сбербанк', icon: '🟢', color: '#4CAF50', order: 1 },
-      { name: 'Т-Банк', icon: '💛', color: '#FFD700', order: 2 },
-      { name: 'Альфа-Банк', icon: '🔴', color: '#F44336', order: 3 },
-      { name: 'ВТБ', icon: '🔵', color: '#2196F3', order: 4 },
-      { name: 'Газпромбанк', icon: '🟣', color: '#9C27B0', order: 5 },
-      { name: 'Почта Банк', icon: '🟠', color: '#FF9800', order: 6 },
-      { name: 'Озон Банк', icon: '🛒', color: '#005BFF', order: 7 },
-      { name: 'Яндекс Банк', icon: '🧾', color: '#FC3F1D', order: 8 },
-      { name: 'МТС Банк', icon: '📶', color: '#E30613', order: 9 },
-      { name: 'Финуслуги', icon: '🏛️', color: '#0047AB', order: 10 },
-    ])
+  const ALL_BANKS = [
+    { name: 'Сбербанк', icon: '🟢', color: '#4CAF50', order: 1 },
+    { name: 'Т-Банк', icon: '💛', color: '#FFD700', order: 2 },
+    { name: 'Альфа-Банк', icon: '🔴', color: '#F44336', order: 3 },
+    { name: 'ВТБ', icon: '🔵', color: '#2196F3', order: 4 },
+    { name: 'Газпромбанк', icon: '🟣', color: '#9C27B0', order: 5 },
+    { name: 'Почта Банк', icon: '🟠', color: '#FF9800', order: 6 },
+    { name: 'Озон Банк', icon: '🛒', color: '#005BFF', order: 7 },
+    { name: 'Яндекс Банк', icon: '🧾', color: '#FC3F1D', order: 8 },
+    { name: 'МТС Банк', icon: '📶', color: '#E30613', order: 9 },
+    { name: 'Финуслуги', icon: '🏛️', color: '#0047AB', order: 10 },
+  ]
+  for (const bank of ALL_BANKS) {
+    const existing = await db.banks.where('name').equals(bank.name).first()
+    if (!existing) {
+      await db.banks.add(bank)
+    }
   }
 
   const categoryCount = await db.categories.count()
