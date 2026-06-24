@@ -1,4 +1,5 @@
 import { db } from './db'
+import { CASHBACK_PRESETS, CASHBACK_PRESETS_HASH } from '@/data/cashbackPresets'
 
 const EXPENSE_CATEGORIES = [
   { name: 'Продукты', icon: '🛒', color: '#4CAF50', order: 1, mcc: 5411 },
@@ -69,19 +70,17 @@ const SUBCATEGORIES: Record<string, { name: string; icon: string; color: string;
 }
 
 export async function seedDefaults() {
-  const accountTypesCount = await db.accountTypes.count()
-  if (accountTypesCount > 0) return
+  if (await db.accountTypes.count() === 0) {
+    await db.accountTypes.bulkAdd([
+      { name: 'Наличные', icon: '💵', color: '#4CAF50', order: 1, kind: 'regular' },
+      { name: 'Банковский счёт', icon: '🏦', color: '#2196F3', order: 2, kind: 'regular' },
+      { name: 'Кредитная карта', icon: '💳', color: '#FF9800', order: 3, kind: 'credit' },
+      { name: 'Ипотека', icon: '🏠', color: '#9C27B0', order: 4, kind: 'mortgage' },
+      { name: 'Кредит', icon: '📋', color: '#F44336', order: 5, kind: 'credit' },
+    ])
+  }
 
-  await db.accountTypes.bulkAdd([
-    { name: 'Наличные', icon: '💵', color: '#4CAF50', order: 1, kind: 'regular' },
-    { name: 'Банковский счёт', icon: '🏦', color: '#2196F3', order: 2, kind: 'regular' },
-    { name: 'Кредитная карта', icon: '💳', color: '#FF9800', order: 3, kind: 'credit' },
-    { name: 'Ипотека', icon: '🏠', color: '#9C27B0', order: 4, kind: 'mortgage' },
-    { name: 'Кредит', icon: '📋', color: '#F44336', order: 5, kind: 'credit' },
-  ])
-
-  const banksCount = await db.banks.count()
-  if (banksCount === 0) {
+  if (await db.banks.count() === 0) {
     await db.banks.bulkAdd([
       { name: 'Сбербанк', icon: '🟢', color: '#4CAF50', order: 1 },
       { name: 'Т-Банк', icon: '💛', color: '#FFD700', order: 2 },
@@ -93,36 +92,65 @@ export async function seedDefaults() {
   }
 
   const categoryCount = await db.categories.count()
-  if (categoryCount > 0) return
+  if (categoryCount === 0) {
+    const nameToId: Record<string, number> = {}
 
-  const nameToId: Record<string, number> = {}
+    for (let i = 0; i < EXPENSE_CATEGORIES.length; i++) {
+      const id = await db.categories.add({ ...EXPENSE_CATEGORIES[i], type: 'expense', parentId: undefined })
+      nameToId[EXPENSE_CATEGORIES[i].name] = id!
+    }
 
-  for (let i = 0; i < EXPENSE_CATEGORIES.length; i++) {
-    const id = await db.categories.add({ ...EXPENSE_CATEGORIES[i], type: 'expense', parentId: undefined })
-    nameToId[EXPENSE_CATEGORIES[i].name] = id!
+    for (let i = 0; i < INCOME_CATEGORIES.length; i++) {
+      const id = await db.categories.add({ ...INCOME_CATEGORIES[i], type: 'income', parentId: undefined })
+      nameToId[INCOME_CATEGORIES[i].name] = id!
+    }
+
+    const subData: {
+      name: string; icon: string; color: string; mcc?: number; type: 'expense'; parentId: number; order: number
+    }[] = []
+    for (const [parentName, subs] of Object.entries(SUBCATEGORIES)) {
+      const parentId = nameToId[parentName]
+      if (!parentId) continue
+      subs.forEach((s, i) => {
+        subData.push({ ...s, type: 'expense', parentId, order: i + 1 })
+      })
+    }
+    if (subData.length > 0) {
+      await db.categories.bulkAdd(subData)
+    }
   }
 
-  for (let i = 0; i < INCOME_CATEGORIES.length; i++) {
-    const id = await db.categories.add({ ...INCOME_CATEGORIES[i], type: 'income', parentId: undefined })
-    nameToId[INCOME_CATEGORIES[i].name] = id!
+  await seedCashbackPresets()
+
+  if (await db.familyMembers.count() === 0) {
+    await db.familyMembers.add({ name: 'Я', color: '#2196F3' })
+  }
+}
+
+export async function seedCashbackPresets() {
+  const storedHash = localStorage.getItem('moneycheck_cashback_presets_hash')
+  if (storedHash === CASHBACK_PRESETS_HASH) return
+
+  const categoryMap = new Map<string, number>()
+  for (const cat of await db.categories.toArray()) {
+    if (cat.id) categoryMap.set(cat.name, cat.id)
   }
 
-  const subData: {
-    name: string; icon: string; color: string; mcc?: number; type: 'expense'; parentId: number; order: number
-  }[] = []
-  for (const [parentName, subs] of Object.entries(SUBCATEGORIES)) {
-    const parentId = nameToId[parentName]
-    if (!parentId) continue
-    subs.forEach((s, i) => {
-      subData.push({ ...s, type: 'expense', parentId, order: i + 1 })
-    })
-  }
-  if (subData.length > 0) {
-    await db.categories.bulkAdd(subData)
+  for (const preset of CASHBACK_PRESETS) {
+    const bank = await db.banks.where('name').equals(preset.bankName).first()
+    if (!bank) continue
+
+    for (const item of preset.items) {
+      await db.cashbacks.where({ bankId: bank.id!, name: item.name }).delete()
+
+      await db.cashbacks.add({
+        bankId: bank.id!,
+        name: item.name,
+        categoryId: item.categoryName ? categoryMap.get(item.categoryName) : undefined,
+        mccList: item.mccList,
+      })
+    }
   }
 
-  const familyCount = await db.familyMembers.count()
-  if (familyCount > 0) return
-
-  await db.familyMembers.add({ name: 'Я', color: '#2196F3' })
+  localStorage.setItem('moneycheck_cashback_presets_hash', CASHBACK_PRESETS_HASH)
 }

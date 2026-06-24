@@ -266,7 +266,7 @@ db.version(11).stores({
   debtPayments: '++id, debtId',
   banks: '++id, order',
   cashbacks: '++id, bankId',
-  accountCashbacks: '++id, accountId, [accountId+cashbackId]',
+  accountCashbacks: '++id, accountId, cashbackId, [accountId+cashbackId]',
 })
 
 db.version(12).stores({
@@ -280,7 +280,7 @@ db.version(12).stores({
   debtPayments: '++id, debtId',
   banks: '++id, order',
   cashbacks: '++id, bankId',
-  accountCashbacks: '++id, accountId, [accountId+cashbackId]',
+  accountCashbacks: '++id, accountId, cashbackId, [accountId+cashbackId]',
 })
 
 db.version(13).stores({
@@ -294,7 +294,7 @@ db.version(13).stores({
   debtPayments: '++id, debtId',
   banks: '++id, order',
   cashbacks: '++id, bankId, categoryId',
-  accountCashbacks: '++id, accountId, [accountId+cashbackId]',
+  accountCashbacks: '++id, accountId, cashbackId, [accountId+cashbackId]',
 })
 
 db.version(14).stores({
@@ -308,7 +308,7 @@ db.version(14).stores({
   debtPayments: '++id, debtId',
   banks: '++id, order',
   cashbacks: '++id, bankId, categoryId',
-  accountCashbacks: '++id, accountId, [accountId+cashbackId]',
+  accountCashbacks: '++id, accountId, cashbackId, [accountId+cashbackId]',
 }).upgrade(async (tx) => {
   await tx.table('accountTypes').each((type: any) => {
     let kind = 'regular'
@@ -317,6 +317,34 @@ db.version(14).stores({
     }
     tx.table('accountTypes').update(type.id, { kind, isLoan: undefined })
   })
+})
+
+db.version(15).stores({
+  transactions: '++id, date, categoryId, type, accountId, transferToAccountId, familyMemberId',
+  categories: '++id, type, order, parentId',
+  budgets: '++id, [month+year], categoryId',
+  familyMembers: '++id',
+  accountTypes: '++id, order',
+  accounts: '++id, familyMemberId, order, bankId, typeId',
+  debts: '++id, status, familyMemberId',
+  debtPayments: '++id, debtId',
+  banks: '++id, name, order',
+  cashbacks: '++id, bankId, categoryId',
+  accountCashbacks: '++id, accountId, cashbackId, [accountId+cashbackId]',
+})
+
+db.version(16).stores({
+  transactions: '++id, date, categoryId, type, accountId, transferToAccountId, familyMemberId',
+  categories: '++id, type, order, parentId',
+  budgets: '++id, [month+year], categoryId',
+  familyMembers: '++id',
+  accountTypes: '++id, order',
+  accounts: '++id, familyMemberId, order, bankId, typeId',
+  debts: '++id, status, familyMemberId',
+  debtPayments: '++id, debtId',
+  banks: '++id, name, order',
+  cashbacks: '++id, bankId, categoryId',
+  accountCashbacks: '++id, accountId, cashbackId, [accountId+cashbackId]',
 })
 
 export { db }
