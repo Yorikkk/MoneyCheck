@@ -41,7 +41,10 @@ npm run build     # tsc -b && vite build (typecheck then bundle)
 npm run preview   # preview production build
 ```
 
-No test, lint, or format commands exist. No CI.
+## Deploy
+
+- `npm run build` → `dist/` → GitHub Pages via `.github/workflows/deploy.yml`
+- Base path `/MoneyCheck/` (set in `vite.config.ts`) — affects PWA scope, service worker, and asset references
 
 ## Stack
 
