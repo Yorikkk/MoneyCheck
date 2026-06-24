@@ -50,7 +50,7 @@ export interface AccountType {
   icon: string
   color: string
   order: number
-  isLoan: boolean
+  kind: 'regular' | 'credit' | 'mortgage'
 }
 
 export interface Bank {
@@ -295,6 +295,28 @@ db.version(13).stores({
   banks: '++id, order',
   cashbacks: '++id, bankId, categoryId',
   accountCashbacks: '++id, accountId, [accountId+cashbackId]',
+})
+
+db.version(14).stores({
+  transactions: '++id, date, categoryId, type, accountId, transferToAccountId, familyMemberId',
+  categories: '++id, type, order, parentId',
+  budgets: '++id, [month+year], categoryId',
+  familyMembers: '++id',
+  accountTypes: '++id, order',
+  accounts: '++id, familyMemberId, order, bankId, typeId',
+  debts: '++id, status, familyMemberId',
+  debtPayments: '++id, debtId',
+  banks: '++id, order',
+  cashbacks: '++id, bankId, categoryId',
+  accountCashbacks: '++id, accountId, [accountId+cashbackId]',
+}).upgrade(async (tx) => {
+  await tx.table('accountTypes').each((type: any) => {
+    let kind = 'regular'
+    if (type.isLoan === true) {
+      kind = type.name === 'Ипотека' ? 'mortgage' : 'credit'
+    }
+    tx.table('accountTypes').update(type.id, { kind, isLoan: undefined })
+  })
 })
 
 export { db }

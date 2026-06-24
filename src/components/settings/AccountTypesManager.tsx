@@ -14,10 +14,10 @@ export default function AccountTypesManager({ onBack }: { onBack: () => void }) 
     if (!edit || !edit.name?.trim()) return
     setSaving(true)
     if (edit.id) {
-      await updateAccountType(edit.id, { name: edit.name.trim(), icon: edit.icon || '💳', color: edit.color || '#2196F3', isLoan: edit.isLoan ?? false, order: edit.order ?? 99 })
+      await updateAccountType(edit.id, { name: edit.name.trim(), icon: edit.icon || '💳', color: edit.color || '#2196F3', kind: edit.kind ?? 'regular', order: edit.order ?? 99 })
     } else {
       const maxOrder = types.reduce((m, t) => Math.max(m, t.order), 0)
-      await addAccountType({ name: edit.name.trim(), icon: edit.icon || '💳', color: edit.color || '#2196F3', isLoan: edit.isLoan ?? false, order: maxOrder + 1 })
+      await addAccountType({ name: edit.name.trim(), icon: edit.icon || '💳', color: edit.color || '#2196F3', kind: edit.kind ?? 'regular', order: maxOrder + 1 })
     }
     setEdit(null)
     setSaving(false)
@@ -66,15 +66,15 @@ export default function AccountTypesManager({ onBack }: { onBack: () => void }) 
             value={edit.color || '#2196F3'}
             onChange={(c) => setEdit({ ...edit, color: c })}
           />
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={edit.isLoan ?? false}
-              onChange={(e) => setEdit({ ...edit, isLoan: e.target.checked })}
-              className="w-4 h-4 rounded border-gray-300 text-blue-600"
-            />
-            Кредитный счёт (проценты + тело)
-          </label>
+          <select
+            value={edit.kind ?? 'regular'}
+            onChange={(e) => setEdit({ ...edit, kind: e.target.value as 'regular' | 'credit' | 'mortgage' })}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+          >
+            <option value="regular">Обычный счёт</option>
+            <option value="credit">Кредитный счёт</option>
+            <option value="mortgage">Ипотека</option>
+          </select>
           <div className="flex gap-2">
             <button onClick={() => setEdit(null)} className="flex-1 py-2 rounded-lg border border-gray-300 text-sm">Отмена</button>
             <button onClick={handleSave} disabled={saving} className="flex-1 py-2 rounded-lg bg-blue-600 text-white text-sm">
@@ -90,7 +90,8 @@ export default function AccountTypesManager({ onBack }: { onBack: () => void }) 
             <span className="text-2xl">{t.icon}</span>
             <div className="flex-1 min-w-0">
               <span className="font-medium">{t.name}</span>
-              {t.isLoan && <span className="text-xs text-gray-400 ml-2">📉 кредит</span>}
+              {t.kind === 'credit' && <span className="text-xs text-gray-400 ml-2">📉 кредит</span>}
+              {t.kind === 'mortgage' && <span className="text-xs text-gray-400 ml-2">🏠 ипотека</span>}
             </div>
             <div className="w-4 h-4 rounded-full" style={{ backgroundColor: t.color }} />
             <button onClick={() => setEdit(t)} className="text-gray-400 text-sm px-2">✏️</button>
@@ -99,7 +100,7 @@ export default function AccountTypesManager({ onBack }: { onBack: () => void }) 
         ))}
       </div>
 
-      <button onClick={() => setEdit({ name: '', icon: '💳', color: '#2196F3', isLoan: false })} className="w-full mt-4 py-3 rounded-xl border-2 border-dashed border-gray-300 text-gray-500 text-sm">
+      <button onClick={() => setEdit({ name: '', icon: '💳', color: '#2196F3', kind: 'regular' })} className="w-full mt-4 py-3 rounded-xl border-2 border-dashed border-gray-300 text-gray-500 text-sm">
         ＋ Добавить тип счета
       </button>
     </div>

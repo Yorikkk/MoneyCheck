@@ -26,12 +26,12 @@ export default function Dashboard() {
     return bank ? `${bank.icon} ${bank.name}` : ''
   }
 
-  const typeLoanMap = new Map(accountTypes.map((t) => [t.id!, t.isLoan]))
+  const typeKindMap = new Map(accountTypes.map((t) => [t.id!, t.kind]))
   const assetsBalance = accounts
-    .filter((a) => !typeLoanMap.get(a.typeId))
+    .filter((a) => typeKindMap.get(a.typeId) === 'regular')
     .reduce((s, a) => s + a.balance, 0)
   const liabilitiesBalance = accounts
-    .filter((a) => typeLoanMap.get(a.typeId))
+    .filter((a) => typeKindMap.get(a.typeId) !== 'regular')
     .reduce((s, a) => s + a.balance, 0)
   const maxBalance = Math.max(assetsBalance, liabilitiesBalance, 1)
   const incomeTotal = transactions.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0)

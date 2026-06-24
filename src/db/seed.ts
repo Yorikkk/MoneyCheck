@@ -73,11 +73,11 @@ export async function seedDefaults() {
   if (accountTypesCount > 0) return
 
   await db.accountTypes.bulkAdd([
-    { name: 'Наличные', icon: '💵', color: '#4CAF50', order: 1, isLoan: false },
-    { name: 'Банковский счёт', icon: '🏦', color: '#2196F3', order: 2, isLoan: false },
-    { name: 'Кредитная карта', icon: '💳', color: '#FF9800', order: 3, isLoan: true },
-    { name: 'Ипотека', icon: '🏠', color: '#9C27B0', order: 4, isLoan: true },
-    { name: 'Кредит', icon: '📋', color: '#F44336', order: 5, isLoan: true },
+    { name: 'Наличные', icon: '💵', color: '#4CAF50', order: 1, kind: 'regular' },
+    { name: 'Банковский счёт', icon: '🏦', color: '#2196F3', order: 2, kind: 'regular' },
+    { name: 'Кредитная карта', icon: '💳', color: '#FF9800', order: 3, kind: 'credit' },
+    { name: 'Ипотека', icon: '🏠', color: '#9C27B0', order: 4, kind: 'mortgage' },
+    { name: 'Кредит', icon: '📋', color: '#F44336', order: 5, kind: 'credit' },
   ])
 
   const banksCount = await db.banks.count()

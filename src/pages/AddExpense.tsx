@@ -66,13 +66,13 @@ export default function AddExpense() {
 
   const selectedAccount = accounts.find((a) => a.id === accountId)
   const selectedType = accountTypes.find((t) => t.id === selectedAccount?.typeId)
-  const isLoanType = selectedType?.isLoan ?? false
+  const isMortgageType = selectedType?.kind === 'mortgage'
 
   const selectedDestAccount = type === 'transfer' ? accounts.find((a) => a.id === transferToAccountId) : undefined
   const selectedDestType = selectedDestAccount ? accountTypes.find((t) => t.id === selectedDestAccount?.typeId) : undefined
-  const isDestLoanType = selectedDestType?.isLoan ?? false
+  const isDestMortgageType = selectedDestType?.kind === 'mortgage'
 
-  const showLoanFields = type !== 'transfer' ? isLoanType : isDestLoanType
+  const showLoanFields = type !== 'transfer' ? isMortgageType : isDestMortgageType
 
   function getTotalAmount(): number {
     if (showLoanFields && principalAmount && interestAmount) {
@@ -102,13 +102,13 @@ export default function AddExpense() {
         const newFromAcc = accounts.find((a) => a.id === accountId)
         const newToAcc = accounts.find((a) => a.id === transferToAccountId)
         const newToType = newToAcc ? accountTypes.find((t) => t.id === newToAcc.typeId) : undefined
-        const newToLoan = newToType?.isLoan ?? false
+        const newToMortgage = newToType?.kind === 'mortgage'
 
         const oldToAcc = accounts.find((a) => a.id === oldTx.transferToAccountId)
         const oldToType = oldToAcc ? accountTypes.find((t) => t.id === oldToAcc.typeId) : undefined
-        const oldToLoan = oldToType?.isLoan ?? false
-        const oldToEffect = oldToLoan && oldTx.principalAmount ? -oldTx.principalAmount : oldTx.amount
-        const newToEffect = newToLoan && Number(principalAmount) ? -Number(principalAmount) : total
+        const oldToMortgage = oldToType?.kind === 'mortgage'
+        const oldToEffect = oldToMortgage && oldTx.principalAmount ? -oldTx.principalAmount : oldTx.amount
+        const newToEffect = newToMortgage && Number(principalAmount) ? -Number(principalAmount) : total
 
         if (accountId === oldTx.accountId && oldFromAcc) {
           await updateAccount(accountId!, { balance: oldFromAcc.balance + oldTx.amount - total })
@@ -130,22 +130,22 @@ export default function AddExpense() {
           accountId: accountId!,
           date: new Date(date),
           transferToAccountId: transferToAccountId!,
-          principalAmount: isDestLoanType ? (Number(principalAmount) || null) : null,
-          interestAmount: isDestLoanType ? (Number(interestAmount) || null) : null,
+          principalAmount: isDestMortgageType ? (Number(principalAmount) || null) : null,
+          interestAmount: isDestMortgageType ? (Number(interestAmount) || null) : null,
         })
       } else {
         // ---- income / expense edit ----
         const oldAcc = accounts.find((a) => a.id === oldTx.accountId)
         const oldAccType = oldAcc ? accountTypes.find((t) => t.id === oldAcc.typeId) : undefined
-        const oldIsLoan = oldAccType?.isLoan ?? false
+        const oldIsMortgage = oldAccType?.kind === 'mortgage'
 
-        function getEffect(t: string, amt: number, prin: number | null | undefined, loan: boolean): number {
+        function getEffect(t: string, amt: number, prin: number | null | undefined, mortgage: boolean): number {
           if (t === 'income') return amt
-          if (loan && prin) return -prin
+          if (mortgage && prin) return -prin
           return -amt
         }
 
-        const oldEffect = getEffect(oldTx.type, oldTx.amount, oldTx.principalAmount, oldIsLoan)
+        const oldEffect = getEffect(oldTx.type, oldTx.amount, oldTx.principalAmount, oldIsMortgage)
         const newEffect = type === 'income' ? total : -(showLoanFields && Number(principalAmount) ? Number(principalAmount) : total)
 
         if (accountId === oldTx.accountId && oldAcc) {
@@ -178,12 +178,12 @@ export default function AddExpense() {
           date: new Date(date),
           type: 'transfer',
           transferToAccountId: transferToAccountId!,
-          principalAmount: isDestLoanType ? (Number(principalAmount) || null) : null,
-          interestAmount: isDestLoanType ? (Number(interestAmount) || null) : null,
+          principalAmount: isDestMortgageType ? (Number(principalAmount) || null) : null,
+          interestAmount: isDestMortgageType ? (Number(interestAmount) || null) : null,
         })
         await updateAccount(accountId!, { balance: selectedAccount!.balance - total })
         const toAccount = accounts.find((a) => a.id === transferToAccountId)!
-        if (isDestLoanType && Number(principalAmount)) {
+        if (isDestMortgageType && Number(principalAmount)) {
           await updateAccount(transferToAccountId!, { balance: toAccount.balance - Number(principalAmount) })
         } else {
           await updateAccount(transferToAccountId!, { balance: toAccount.balance + total })
@@ -246,7 +246,7 @@ export default function AddExpense() {
         ))}
       </div>
 
-      {type === 'transfer' && isDestLoanType ? (
+      {type === 'transfer' && isDestMortgageType ? (
         <div className="bg-white rounded-xl p-4 shadow-sm mb-4">
           <div className="bg-orange-50 rounded-lg p-3 space-y-2">
             <div className="text-xs text-orange-600 font-medium">Платеж по кредиту</div>
@@ -447,7 +447,7 @@ export default function AddExpense() {
           </>
         )}
 
-        {type !== 'transfer' && isLoanType && (
+        {type !== 'transfer' && isMortgageType && (
           <div className="bg-orange-50 rounded-lg p-3 space-y-2">
             <div className="text-xs text-orange-600 font-medium">Платеж по кредиту</div>
             <div className="flex gap-2">
