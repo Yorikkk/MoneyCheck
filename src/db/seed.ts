@@ -1,5 +1,5 @@
 import { db } from './db'
-import { CASHBACK_PRESETS, CASHBACK_PRESETS_HASH } from '@/data/cashbackPresets'
+import { CASHBACK_PRESETS } from '@/data/cashbackPresets'
 
 const EXPENSE_CATEGORIES = [
   { name: 'Продукты', icon: '🛒', color: '#4CAF50', order: 1, mcc: 5411 },
@@ -128,9 +128,6 @@ export async function seedDefaults() {
 }
 
 export async function seedCashbackPresets() {
-  const storedHash = localStorage.getItem('moneycheck_cashback_presets_hash')
-  if (storedHash === CASHBACK_PRESETS_HASH) return
-
   const categoryMap = new Map<string, number>()
   for (const cat of await db.categories.toArray()) {
     if (cat.id) categoryMap.set(cat.name, cat.id)
@@ -138,19 +135,23 @@ export async function seedCashbackPresets() {
 
   for (const preset of CASHBACK_PRESETS) {
     const bank = await db.banks.where('name').equals(preset.bankName).first()
-    if (!bank) continue
+    if (!bank || !bank.id) continue
 
     for (const item of preset.items) {
-      await db.cashbacks.where({ bankId: bank.id!, name: item.name }).delete()
+      const existing = await db.cashbacks.where({ bankId: bank.id, name: item.name }).first()
 
-      await db.cashbacks.add({
-        bankId: bank.id!,
+      const data = {
+        bankId: bank.id,
         name: item.name,
         categoryId: item.categoryName ? categoryMap.get(item.categoryName) : undefined,
         mccList: item.mccList,
-      })
+      }
+
+      if (existing && existing.id) {
+        await db.cashbacks.update(existing.id, data)
+      } else {
+        await db.cashbacks.add(data)
+      }
     }
   }
-
-  localStorage.setItem('moneycheck_cashback_presets_hash', CASHBACK_PRESETS_HASH)
 }

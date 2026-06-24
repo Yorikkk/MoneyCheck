@@ -333,7 +333,7 @@ db.version(15).stores({
   accountCashbacks: '++id, accountId, cashbackId, [accountId+cashbackId]',
 })
 
-db.version(16).stores({
+db.version(17).stores({
   transactions: '++id, date, categoryId, type, accountId, transferToAccountId, familyMemberId',
   categories: '++id, type, order, parentId',
   budgets: '++id, [month+year], categoryId',
@@ -343,8 +343,17 @@ db.version(16).stores({
   debts: '++id, status, familyMemberId',
   debtPayments: '++id, debtId',
   banks: '++id, name, order',
-  cashbacks: '++id, bankId, categoryId',
+  cashbacks: '++id, bankId, categoryId, &[bankId+name]',
   accountCashbacks: '++id, accountId, cashbackId, [accountId+cashbackId]',
+}).upgrade(async (tx) => {
+  const seen = new Set<string>()
+  await tx.table('cashbacks').each((cb: any) => {
+    const key = `${cb.bankId}|${cb.name}`
+    if (seen.has(key)) {
+      tx.table('cashbacks').delete(cb.id)
+    }
+    seen.add(key)
+  })
 })
 
 export { db }

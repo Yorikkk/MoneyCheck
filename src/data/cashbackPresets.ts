@@ -1,7 +1,7 @@
 export interface CashbackPresetItem {
   name: string
-  categoryName?: string
-  mccList?: number[]
+  categoryName: string | null
+  mccList: number[]
 }
 
 export interface CashbackPreset {
@@ -13,6 +13,7 @@ export const CASHBACK_PRESETS: CashbackPreset[] = [
   {
     bankName: 'Сбербанк',
     items: [
+      { name: 'Все', categoryName: null, mccList: [] },
       { name: 'Рестораны', categoryName: 'Кафе', mccList: [5811, 5812, 5813, 5814] },
       { name: 'Продукты', categoryName: 'Продукты', mccList: [5411, 5422, 5431, 5441, 5451, 5462, 5499] },
       { name: 'АЗС', categoryName: 'Транспорт', mccList: [5172, 5541, 5542, 5983] },
@@ -28,21 +29,45 @@ export const CASHBACK_PRESETS: CashbackPreset[] = [
   {
     bankName: 'Т-Банк',
     items: [
-      { name: 'Рестораны', categoryName: 'Кафе', mccList: [5811, 5812, 5813, 5814] },
-      { name: 'АЗС', categoryName: 'Транспорт', mccList: [5172, 5541, 5542, 5983] },
+      { name: 'Все', categoryName: null, mccList: [] },
+      { name: 'Автоуслуги', categoryName: 'Транспортт', mccList: [5013, 5531, 5532, 5533, 5571, 7523, 7531, 7534, 7535, 7538, 7542, 7549] },
+      { name: 'Заправки', categoryName: 'Транспорт', mccList: [5172, 5541, 5542, 5552, 5983] },
+      { name: 'Платные дороги', categoryName: 'Транспорт', mccList: [4784] },
+      { name: 'Животные', categoryName: 'Прочее', mccList: [742, 5995] },
+      { name: 'Ремонт и мебель', categoryName: 'Жильё', mccList: [1520, 1711, 1731, 1740, 1750, 1761, 1771, 1799, 2842, 5021, 5039, 5046, 5051, 5065, 5072, 5074, 5085, 5198, 5200, 5211, 5231, 5251, 5261, 5415, 5712, 5713, 5714, 5718, 5719, 5950, 7622, 7623, 7629, 7641, 7692, 7699] },
+      { name: 'Кино', categoryName: 'Развлечения', mccList: [7829, 7832] },
+      { name: 'Онлайн-кинотеатры', categoryName: 'Развлечения', mccList: [7841] },
+      { name: 'Развлечения', categoryName: 'Развлечения', mccList: [7929, 7932, 7933, 7993, 7994, 7996, 7998, 7999, 8664] },
+      { name: 'Цифровые товары', categoryName: 'Прочее', mccList: [19, 5815, 5816, 5817, 5818] },
+      { name: 'Косметика', categoryName: 'Прочее', mccList: [5977] },
+      { name: 'Красота', categoryName: 'Прочее', mccList: [5977, 7230, 7297, 7298] },
+      { name: 'Аптеки', categoryName: 'Здоровье', mccList: [5122, 5292, 5295, 5912] },
+      { name: 'Рестораны', categoryName: 'Кафе', mccList: [5811, 5812, 5813] },
+      { name: 'Супермаркеты', categoryName: 'Продукты', mccList: [5297, 5298, 5411, 5412, 5422, 5441, 5451, 5462, 5499, 5715, 5921] },
+      { name: 'Фастфуд', categoryName: 'Кафе', mccList: [5814] },
+      { name: 'Искусство', categoryName: 'Развлечения', mccList: [5932, 5937, 5971, 5973, 7922, 7991] },
+      { name: 'Музыка', categoryName: 'Развлечения', mccList: [5733, 5735] },
+      { name: 'Образование', categoryName: 'Образование', mccList: [8211, 8220, 8241, 8244, 8249, 8299, 8493, 8494, 8351] },
+      { name: 'Книги и канцтовары', categoryName: 'Образование', mccList: [2741, 5111, 5192, 5942, 5943, 5994] },
+      { name: 'Авиабилеты', categoryName: 'Транспорт', mccList: [...Array.from({ length: 304 }, (_, i) => 3000 + i), 3308, 3350, 4304, 4415, 4418, 4511, 4582] },
+      { name: 'Ж/д билеты', categoryName: 'Транспорт', mccList: [4011, 4112] },
+      { name: 'Duty Free', categoryName: 'Прочее', mccList: [5309] },
+      { name: 'Спорттовары', categoryName: 'Здоровье', mccList: [5655, 5940, 5941] },
+      { name: 'Тренировки', categoryName: 'Здоровье', mccList: [7911, 7941, 7992, 7997] },
+      { name: 'Каршеринг', categoryName: 'Транспорт', mccList: [...Array.from({ length: 91 }, (_, i) => 3351 + i), 7512, 7513, 7519] },
+      { name: 'Местный транспорт', categoryName: 'Транспорт', mccList: [4111] },
       { name: 'Такси', categoryName: 'Транспорт', mccList: [4121] },
-      { name: 'Авиабилеты', categoryName: 'Транспорт', mccList: [3000, 3001, 3002, 3033, 3052, 3351, 3352, 3353, 3354, 3355, 3357, 3359, 3360, 3361, 4511] },
-      { name: 'Отели', categoryName: 'Жильё', mccList: [3501, 3502, 3503, 3504, 3505, 3506, 3507, 3508, 3509, 3510, 3511, 3512, 3513, 3514, 3515, 3516, 3517, 3518, 3519, 7011, 7012] },
-      { name: 'Кино', categoryName: 'Развлечения', mccList: [7832, 7841, 7829] },
-      { name: 'Аптеки', categoryName: 'Здоровье', mccList: [5122, 5912] },
-      { name: 'Супермаркеты', categoryName: 'Продукты', mccList: [5411, 5422, 5431, 5441, 5451, 5462, 5499] },
-      { name: 'Образование', categoryName: 'Образование', mccList: [8211, 8220, 8241, 8244, 8249, 8299, 8351] },
-      { name: 'Спорт и фитнес', categoryName: 'Здоровье', mccList: [5941, 7992, 7997] },
+      { name: 'Гаджеты и техника', categoryName: 'Прочее', mccList: [5722, 5732] },
+      { name: 'Детские товары', categoryName: 'Подарки', mccList: [5641, 5945] },
+      { name: 'Одежда и обувь', categoryName: 'Одежда', mccList: [5137, 5139, 5611, 5621, 5631, 5651, 5661, 5681, 5691, 5697, 5698, 5699, 5931, 5948, 7296] },
+      { name: 'Подарки и творчество', categoryName: 'Подарки', mccList: [5947, 5949, 5970, 5972] },
+      { name: 'Цветы', categoryName: 'Подарки', mccList: [5193, 5992] },
     ],
   },
   {
     bankName: 'Альфа-Банк',
     items: [
+      { name: 'Все', categoryName: null, mccList: [] },
       { name: 'Рестораны', categoryName: 'Кафе', mccList: [5811, 5812, 5813, 5814] },
       { name: 'Такси', categoryName: 'Транспорт', mccList: [4121] },
       { name: 'АЗС', categoryName: 'Транспорт', mccList: [5172, 5541, 5542] },
@@ -93,13 +118,3 @@ export const CASHBACK_PRESETS: CashbackPreset[] = [
   },
 ]
 
-function hashCashbackPresets(): string {
-  let hash = 5381
-  const str = JSON.stringify(CASHBACK_PRESETS)
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) + hash) + str.charCodeAt(i)
-  }
-  return Math.abs(hash).toString(36)
-}
-
-export const CASHBACK_PRESETS_HASH = hashCashbackPresets()

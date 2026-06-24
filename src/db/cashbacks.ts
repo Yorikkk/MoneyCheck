@@ -5,6 +5,8 @@ export async function getCashbacksByBank(bankId: number) {
 }
 
 export async function addCashback(cashback: Omit<Cashback, 'id'>) {
+  const existing = await db.cashbacks.where({ bankId: cashback.bankId, name: cashback.name }).first()
+  if (existing) throw new Error(`Кешбек "${cashback.name}" уже существует для этого банка`)
   return db.cashbacks.add(cashback)
 }
 

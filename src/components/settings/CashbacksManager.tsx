@@ -97,6 +97,7 @@ export default function CashbacksManager({ bankId, bankName, bankIcon, onBack }:
   }
 
   async function handleSave() {
+    if (saving) return
     if (!edit || !edit.name?.trim()) return
     setSaving(true)
     setError('')
