@@ -6,6 +6,7 @@ const EXPENSE_CATEGORIES = [
   { name: 'Коммуналка', icon: '🏠', color: '#FF9800', order: 2 },
   { name: 'Общепит', icon: '🍽️', color: '#FF5722', order: 3 },
   { name: 'Транспорт', icon: '🚗', color: '#2196F3', order: 4 },
+  { name: 'Авто', icon: '🚘', color: '#2196F3', order: 4 },
   { name: 'Развлечения', icon: '🎬', color: '#E91E63', order: 5 },
   { name: 'Подписки', icon: '🔔', color: '#cfdf42', order: 6 },
   { name: 'Здоровье', icon: '💊', color: '#F44336', order: 7 },
@@ -54,8 +55,8 @@ const SUBCATEGORIES: Record<string, { name: string; icon: string; color: string;
     { name: 'Такси', icon: '🚕', color: '#FFC107', mcc: 4121 },
     { name: 'Метро', icon: '🚇', color: '#FF5722', mcc: 4111 },
     { name: 'Автобус', icon: '🚌', color: '#FF9800', mcc: 4111 },
-    { name: 'ЖД', icon: '🚌', color: '#FF9800', mcc: 4490 },
-    { name: 'Электричка', icon: '🚌', color: '#FF9800', mcc: 4111 },
+    { name: 'ЖД', icon: '🚂', color: '#ff0800', mcc: 4490 },
+    { name: 'Электричка', icon: '🚅', color: '#00e1ff', mcc: 4111 },
     { name: 'Бензин', icon: '⛽', color: '#F44336', mcc: 5541 },
   ],
   'Развлечения': [
@@ -90,11 +91,11 @@ export async function seedDefaults() {
     await db.accountTypes.bulkAdd([
       { name: 'Дебетовая карта', icon: '💵', color: '#4CAF50', order: 1, kind: 'regular' },
       { name: 'Срочный счёт', icon: '🏦', color: '#21bb55', order: 2, kind: 'regular' },
-      { name: 'Накопительный счёт', icon: '🏦', color: '#0bf16b', order: 2, kind: 'regular' },
-      { name: 'Кредитная карта', icon: '💳', color: '#FF9800', order: 3, kind: 'credit' },
-      { name: 'Ипотека', icon: '🏠', color: '#9C27B0', order: 4, kind: 'mortgage' },
-      { name: 'Кредит', icon: '📋', color: '#f7a000', order: 5, kind: 'credit' },
-      { name: 'Наличные', icon: '💵', color: '#4CAF50', order: 1, kind: 'regular' },
+      { name: 'Накопительный счёт', icon: '🏦', color: '#0bf16b', order: 3, kind: 'regular' },
+      { name: 'Кредитная карта', icon: '💳', color: '#FF9800', order: 4, kind: 'credit' },
+      { name: 'Ипотека', icon: '🏠', color: '#9C27B0', order: 5, kind: 'mortgage' },
+      { name: 'Кредит', icon: '📋', color: '#f7a000', order: 6, kind: 'credit' },
+      { name: 'Наличные', icon: '💵', color: '#4CAF50', order: 7, kind: 'regular' },
     ])
   }
 
