@@ -32,11 +32,15 @@ export default function BudgetsManager({ onBack }: { onBack: () => void }) {
 
   async function handleSave(categoryId: number) {
     const amount = Number(values[categoryId]) || 0
-    if (amount === 0) {
-      const existing = budgets.find((b) => b.categoryId === categoryId)
-      if (existing?.id) await deleteBudget(existing.id)
-    } else {
-      await setBudget({ categoryId, month, year, amount })
+    try {
+      if (amount === 0) {
+        const existing = budgets.find((b) => b.categoryId === categoryId)
+        if (existing?.id) await deleteBudget(existing.id)
+      } else {
+        await setBudget({ categoryId, month, year, amount })
+      }
+    } catch (e: unknown) {
+      console.error('Ошибка сохранения бюджета:', e)
     }
   }
 

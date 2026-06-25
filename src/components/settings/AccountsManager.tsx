@@ -78,32 +78,38 @@ export default function AccountsManager({ onBack }: { onBack: () => void }) {
   async function handleSave() {
     if (!edit || !edit.name?.trim() || !edit.typeId || !edit.bankId) return
     setSaving(true)
-    if (edit.id) {
-      await updateAccount(edit.id, {
-        name: edit.name.trim(),
-        typeId: edit.typeId,
-        bankId: edit.bankId,
-        currency: edit.currency || 'RUB',
-        balance: edit.balance ?? 0,
-        icon: edit.icon || '🏦',
-        color: edit.color || '#2196F3',
-        familyMemberId: edit.familyMemberId,
-      })
-    } else {
-      await addAccount({
-        name: edit.name.trim(),
-        typeId: edit.typeId,
-        bankId: edit.bankId,
-        currency: edit.currency || 'RUB',
-        balance: edit.balance ?? 0,
-        icon: edit.icon || '🏦',
-        color: edit.color || '#2196F3',
-        familyMemberId: edit.familyMemberId || (familyMembers[0]?.id ?? 0),
-        order: accounts.length,
-      })
+    setError('')
+    try {
+      if (edit.id) {
+        await updateAccount(edit.id, {
+          name: edit.name.trim(),
+          typeId: edit.typeId,
+          bankId: edit.bankId,
+          currency: edit.currency || 'RUB',
+          balance: edit.balance ?? 0,
+          icon: edit.icon || '🏦',
+          color: edit.color || '#2196F3',
+          familyMemberId: edit.familyMemberId,
+        })
+      } else {
+        await addAccount({
+          name: edit.name.trim(),
+          typeId: edit.typeId,
+          bankId: edit.bankId,
+          currency: edit.currency || 'RUB',
+          balance: edit.balance ?? 0,
+          icon: edit.icon || '🏦',
+          color: edit.color || '#2196F3',
+          familyMemberId: edit.familyMemberId || (familyMembers[0]?.id ?? 0),
+          order: accounts.length,
+        })
+      }
+      setEdit(null)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Ошибка сохранения')
+    } finally {
+      setSaving(false)
     }
-    setEdit(null)
-    setSaving(false)
   }
 
   async function handleDelete(id: number) {

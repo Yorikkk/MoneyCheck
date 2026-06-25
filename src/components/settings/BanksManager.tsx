@@ -18,14 +18,19 @@ export default function BanksManager({ onBack }: { onBack: () => void }) {
     if (!edit || !edit.name?.trim()) return
     setSaving(true)
     setError('')
-    if (edit.id) {
-      await updateBank(edit.id, { name: edit.name.trim(), icon: edit.icon || '🏦', color: edit.color || '#2196F3', order: edit.order ?? 99 })
-    } else {
-      const maxOrder = banks.reduce((m, b) => Math.max(m, b.order), 0)
-      await addBank({ name: edit.name.trim(), icon: edit.icon || '🏦', color: edit.color || '#2196F3', order: maxOrder + 1 })
+    try {
+      if (edit.id) {
+        await updateBank(edit.id, { name: edit.name.trim(), icon: edit.icon || '🏦', color: edit.color || '#2196F3', order: edit.order ?? 99 })
+      } else {
+        const maxOrder = banks.reduce((m, b) => Math.max(m, b.order), 0)
+        await addBank({ name: edit.name.trim(), icon: edit.icon || '🏦', color: edit.color || '#2196F3', order: maxOrder + 1 })
+      }
+      setEdit(null)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Ошибка сохранения')
+    } finally {
+      setSaving(false)
     }
-    setEdit(null)
-    setSaving(false)
   }
 
   async function handleDelete(id: number) {

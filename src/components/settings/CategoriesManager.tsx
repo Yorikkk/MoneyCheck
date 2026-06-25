@@ -41,31 +41,37 @@ export default function CategoriesManager({ onBack }: { onBack: () => void }) {
   async function handleSave() {
     if (!edit || !edit.name?.trim()) return
     setSaving(true)
-    if (edit.id) {
-      const changes: Partial<Category> = {
-        name: edit.name.trim(),
-        icon: edit.icon || '📦',
-        color: edit.color || '#9E9E9E',
-        mcc: edit.mcc || undefined,
+    setError('')
+    try {
+      if (edit.id) {
+        const changes: Partial<Category> = {
+          name: edit.name.trim(),
+          icon: edit.icon || '📦',
+          color: edit.color || '#9E9E9E',
+          mcc: edit.mcc || undefined,
+        }
+        if (edit.parentId !== undefined) {
+          changes.parentId = edit.parentId
+        }
+        await updateCategory(edit.id, changes)
+      } else {
+        const maxOrder = categories.reduce((m, c) => Math.max(m, c.order), 0)
+        await addCategory({
+          name: edit.name.trim(),
+          icon: edit.icon || '📦',
+          color: edit.color || '#9E9E9E',
+          type: tab,
+          order: maxOrder + 1,
+          parentId: parent?.id ?? undefined,
+          mcc: edit.mcc || undefined,
+        })
       }
-      if (edit.parentId !== undefined) {
-        changes.parentId = edit.parentId
-      }
-      await updateCategory(edit.id, changes)
-    } else {
-      const maxOrder = categories.reduce((m, c) => Math.max(m, c.order), 0)
-      await addCategory({
-        name: edit.name.trim(),
-        icon: edit.icon || '📦',
-        color: edit.color || '#9E9E9E',
-        type: tab,
-        order: maxOrder + 1,
-        parentId: parent?.id ?? undefined,
-        mcc: edit.mcc || undefined,
-      })
+      setEdit(null)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Ошибка сохранения')
+    } finally {
+      setSaving(false)
     }
-    setEdit(null)
-    setSaving(false)
   }
 
   async function handleDelete(id: number) {

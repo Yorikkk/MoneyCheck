@@ -15,14 +15,20 @@ export default function AccountTypesManager({ onBack }: { onBack: () => void }) 
   async function handleSave() {
     if (!edit || !edit.name?.trim()) return
     setSaving(true)
-    if (edit.id) {
-      await updateAccountType(edit.id, { name: edit.name.trim(), icon: edit.icon || '💳', color: edit.color || '#2196F3', kind: edit.kind ?? 'regular', order: edit.order ?? 99 })
-    } else {
-      const maxOrder = types.reduce((m, t) => Math.max(m, t.order), 0)
-      await addAccountType({ name: edit.name.trim(), icon: edit.icon || '💳', color: edit.color || '#2196F3', kind: edit.kind ?? 'regular', order: maxOrder + 1 })
+    setError('')
+    try {
+      if (edit.id) {
+        await updateAccountType(edit.id, { name: edit.name.trim(), icon: edit.icon || '💳', color: edit.color || '#2196F3', kind: edit.kind ?? 'regular', order: edit.order ?? 99 })
+      } else {
+        const maxOrder = types.reduce((m, t) => Math.max(m, t.order), 0)
+        await addAccountType({ name: edit.name.trim(), icon: edit.icon || '💳', color: edit.color || '#2196F3', kind: edit.kind ?? 'regular', order: maxOrder + 1 })
+      }
+      setEdit(null)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Ошибка сохранения')
+    } finally {
+      setSaving(false)
     }
-    setEdit(null)
-    setSaving(false)
   }
 
   async function handleDelete(id: number) {

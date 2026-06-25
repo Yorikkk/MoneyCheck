@@ -87,21 +87,27 @@ export default function AccountCashbacksManager({ account, bankName, bankIcon, o
   async function handleSave() {
     if (!cashbackId || !startDate || !endDate) return
     setSaving(true)
-    const data = {
-      accountId: account.id!,
-      cashbackId: cashbackId as number,
-      categoryId: categoryId || undefined,
-      percent,
-      startDate: dayjs(startDate).startOf('day').toDate(),
-      endDate: dayjs(endDate).endOf('day').toDate(),
+    setError('')
+    try {
+      const data = {
+        accountId: account.id!,
+        cashbackId: cashbackId as number,
+        categoryId: categoryId || undefined,
+        percent,
+        startDate: dayjs(startDate).startOf('day').toDate(),
+        endDate: dayjs(endDate).endOf('day').toDate(),
+      }
+      if (editId) {
+        await updateAccountCashback(editId, data)
+      } else {
+        await addAccountCashback(data)
+      }
+      resetForm()
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Ошибка сохранения')
+    } finally {
+      setSaving(false)
     }
-    if (editId) {
-      await updateAccountCashback(editId, data)
-    } else {
-      await addAccountCashback(data)
-    }
-    setSaving(false)
-    resetForm()
   }
 
   async function handleDelete(id: number) {

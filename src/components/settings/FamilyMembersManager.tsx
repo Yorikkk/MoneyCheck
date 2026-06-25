@@ -13,13 +13,19 @@ export default function FamilyMembersManager({ onBack }: { onBack: () => void })
   async function handleSave() {
     if (!edit || !edit.name?.trim()) return
     setSaving(true)
-    if (edit.id) {
-      await updateFamilyMember(edit.id, { name: edit.name.trim(), color: edit.color })
-    } else {
-      await addFamilyMember({ name: edit.name.trim(), color: edit.color })
+    setError('')
+    try {
+      if (edit.id) {
+        await updateFamilyMember(edit.id, { name: edit.name.trim(), color: edit.color })
+      } else {
+        await addFamilyMember({ name: edit.name.trim(), color: edit.color })
+      }
+      setEdit(null)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Ошибка сохранения')
+    } finally {
+      setSaving(false)
     }
-    setEdit(null)
-    setSaving(false)
   }
 
   async function handleDelete(id: number) {
