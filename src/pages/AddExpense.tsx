@@ -44,6 +44,7 @@ export default function AddExpense() {
   const [saving, setSaving] = useState(false)
   const [place, setPlace] = useState('')
   const [mcc, setMcc] = useState('')
+  const [noCashback, setNoCashback] = useState(false)
   const [browseParent, setBrowseParent] = useState<Category | null>(null)
 
   useEffect(() => {
@@ -59,6 +60,7 @@ export default function AddExpense() {
       setPrincipalAmount(tx.principalAmount ? String(tx.principalAmount) : '')
       setInterestAmount(tx.interestAmount ? String(tx.interestAmount) : '')
       setMcc(tx.mcc ? String(tx.mcc) : '')
+      setNoCashback(tx.noCashback ?? false)
       setBrowseParent(null)
     } else if (locationState?.repeatTx) {
       const tx = locationState.repeatTx
@@ -71,6 +73,7 @@ export default function AddExpense() {
       setPrincipalAmount(tx.principalAmount ? String(tx.principalAmount) : '')
       setInterestAmount(tx.interestAmount ? String(tx.interestAmount) : '')
       setMcc(tx.mcc ? String(tx.mcc) : '')
+      setNoCashback(tx.noCashback ?? false)
       setBrowseParent(null)
     } else if (locationState?.accountId) {
       setAccountId(locationState.accountId)
@@ -196,6 +199,7 @@ export default function AddExpense() {
           principalAmount: null,
           interestAmount: null,
           mcc: mcc ? Number(mcc) : undefined,
+          noCashback: noCashback || undefined,
         })
       }
     } else {
@@ -234,6 +238,7 @@ export default function AddExpense() {
           principalAmount: null,
           interestAmount: null,
           mcc: mcc ? Number(mcc) : undefined,
+          noCashback: noCashback || undefined,
         })
         await updateAccount(accountId!, { balance: selectedAccount!.balance + getSourceEffect(selectedType?.kind, type, total) })
       }
@@ -247,6 +252,7 @@ export default function AddExpense() {
     setPrincipalAmount('')
     setInterestAmount('')
     setMcc('')
+    setNoCashback(false)
     setSaving(false)
     navigate('/transactions')
   }
@@ -265,7 +271,7 @@ export default function AddExpense() {
           <button
             key={key}
             disabled={isEditing}
-            onClick={() => { setType(key); setCategoryId(null); setTransferToAccountId(null); setPrincipalAmount(''); setInterestAmount(''); setMcc(''); setBrowseParent(null) }}
+            onClick={() => { setType(key); setCategoryId(null); setTransferToAccountId(null); setPrincipalAmount(''); setInterestAmount(''); setMcc(''); setNoCashback(false); setBrowseParent(null) }}
             className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
               type === key ? 'bg-white text-blue-600 shadow-sm font-bold' : 'text-gray-500'
             } ${isEditing ? 'opacity-60 cursor-not-allowed' : ''}`}
@@ -485,6 +491,17 @@ export default function AddExpense() {
             </div>
             {placeError && (
               <p className="text-red-500 text-xs mt-1">{ placeError }</p>
+            )}
+            {type === 'expense' && (
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={noCashback}
+                  onChange={(e) => setNoCashback(e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-300 text-blue-600"
+                />
+                <span className="text-sm text-gray-600">Не рассчитывать кешбек</span>
+              </label>
             )}
           </>
         )}

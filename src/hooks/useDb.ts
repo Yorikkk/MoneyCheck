@@ -178,7 +178,7 @@ export function useCashbackSummary(year: number, month: number) {
     const ruleAmounts = new Map<number, number>()
 
     for (const t of transactions) {
-      if (t.type !== 'expense' || t.amount <= 0) continue
+      if (t.type !== 'expense' || t.amount <= 0 || t.noCashback) continue
 
       const acList = acByAccount.get(t.accountId)
       if (!acList || acList.length === 0) continue
@@ -303,7 +303,7 @@ export function useCashbackForTransactions() {
     }
 
     return (tx: Transaction): number => {
-      if (tx.type !== 'expense' || tx.amount <= 0) return 0
+      if (tx.type !== 'expense' || tx.amount <= 0 || tx.noCashback) return 0
 
       const acList = acByAccount.get(tx.accountId)
       if (!acList || acList.length === 0) return 0

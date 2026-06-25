@@ -13,6 +13,7 @@ export interface Transaction {
   interestAmount?: number | null
   transferToAccountId?: number
   mcc?: number
+  noCashback?: boolean
   createdAt: Date
 }
 
@@ -378,6 +379,20 @@ db.version(18).stores({
     }
     await tx.table('cashbacks').update(cb.id, { categoryId: undefined })
   }
+})
+
+db.version(19).stores({
+  transactions: '++id, date, categoryId, type, accountId, transferToAccountId, familyMemberId',
+  categories: '++id, type, order, parentId',
+  budgets: '++id, [month+year], categoryId',
+  familyMembers: '++id',
+  accountTypes: '++id, order',
+  accounts: '++id, familyMemberId, order, bankId, typeId',
+  debts: '++id, status, familyMemberId',
+  debtPayments: '++id, debtId',
+  banks: '++id, name, order',
+  cashbacks: '++id, bankId, &[bankId+name]',
+  accountCashbacks: '++id, accountId, cashbackId, categoryId, [accountId+cashbackId]',
 })
 
 export { db }
