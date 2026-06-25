@@ -1,6 +1,6 @@
 import dayjs from 'dayjs'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, type Bank, type Cashback, type AccountCashback } from '@/db'
+import { db, type Bank, type Cashback, type AccountCashback, type Transaction } from '@/db'
 
 export function useTransactionsByMonth(year: number, month: number) {
   const from = new Date(year, month - 1, 1)
@@ -285,4 +285,48 @@ export function useCashbackSummary(year: number, month: number) {
       }))
       .sort((a, b) => a.bank.order - b.bank.order)
   }, [year, month])
+}
+
+export function useCashbackForTransactions() {
+  return useLiveQuery(async () => {
+    const [allAc, allCb] = await Promise.all([
+      db.accountCashbacks.toArray(),
+      db.cashbacks.toArray(),
+    ])
+
+    const cbMap = new Map(allCb.map((cb) => [cb.id!, cb]))
+    const acByAccount = new Map<number, AccountCashback[]>()
+    for (const ac of allAc) {
+      let list = acByAccount.get(ac.accountId)
+      if (!list) { list = []; acByAccount.set(ac.accountId, list) }
+      list.push(ac)
+    }
+
+    return (tx: Transaction): number => {
+      if (tx.type !== 'expense' || tx.amount <= 0) return 0
+
+      const acList = acByAccount.get(tx.accountId)
+      if (!acList || acList.length === 0) return 0
+
+      const cbList: { ac: AccountCashback; cb: Cashback }[] = []
+      for (const ac of acList) {
+        if (ac.startDate > tx.date || ac.endDate < tx.date) continue
+        const cb = cbMap.get(ac.cashbackId)
+        if (cb) cbList.push({ ac, cb })
+      }
+
+      let found = cbList.find((x) => x.ac.categoryId != null && x.ac.categoryId === tx.categoryId)
+      if (!found && tx.mcc != null) {
+        found = cbList.find((x) => x.cb.mccList && x.cb.mccList.length > 0 && x.cb.mccList.includes(tx.mcc!))
+      }
+      if (!found) {
+        found = cbList.find((x) => x.ac.categoryId == null && (!x.cb.mccList || x.cb.mccList.length === 0))
+      }
+
+      if (found) {
+        return Math.round((tx.amount * found.ac.percent) / 100 * 100) / 100
+      }
+      return 0
+    }
+  }, [])
 }

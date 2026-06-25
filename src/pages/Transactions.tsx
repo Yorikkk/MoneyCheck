@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import dayjs from 'dayjs'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useAllTransactions, useAccounts, useCategories, useBanks, useAccountTypes } from '@/hooks/useDb'
+import { useAllTransactions, useAccounts, useCategories, useBanks, useAccountTypes, useCashbackForTransactions } from '@/hooks/useDb'
 import { deleteTransaction, updateAccount } from '@/db'
 import { formatCurrency } from '@/lib/utils'
 import type { Transaction } from '@/db'
@@ -16,6 +16,7 @@ export default function Transactions() {
   const categories = useCategories() ?? []
   const banks = useBanks() ?? []
   const accountTypes = useAccountTypes() ?? []
+  const getCashback = useCashbackForTransactions() ?? (() => 0)
 
   const typeKindMap: Record<number, string> = {}
   for (const t of accountTypes) {
@@ -141,6 +142,7 @@ export default function Transactions() {
                 const cat = categories.find((c) => c.id === tx.categoryId)
 const account = accounts.find((a) => a.id === tx.accountId)
                 const toAccount = accounts.find((a) => a.id === tx.transferToAccountId)
+                const cashback = tx.type === 'expense' ? getCashback(tx) : 0
                 return (
                   <div
                     key={tx.id}
@@ -187,6 +189,9 @@ const account = accounts.find((a) => a.id === tx.accountId)
                           <div className={`text-sm font-semibold ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
                             {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
                           </div>
+                          {cashback > 0 && (
+                            <div className="text-xs text-green-500 font-medium">💳 +{formatCurrency(cashback)}</div>
+                          )}
                           <button
                             onClick={(e) => { e.stopPropagation(); handleDelete(tx) }}
                             className="text-xs text-gray-400 hover:text-red-500"
