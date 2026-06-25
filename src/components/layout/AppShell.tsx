@@ -12,8 +12,11 @@ const navItems = [
 
 export function AppShell({ children, className = '' }: { children: ReactNode, className?: string }) {
   return (
-    <div className={`flex flex-col h-dvh max-w-lg mx-auto bg-gray-50 ${className}`}>
-      <main className="flex-1 overflow-y-auto p-4 pb-20">
+    <div
+      className={`flex flex-col h-dvh max-w-lg mx-auto bg-gray-50 overflow-y-auto ${className}`}
+      style={{ paddingBottom: 'calc(4rem + env(safe-area-inset-bottom))' }}
+    >
+      <main className="flex-1 p-4 pb-20">
         {children}
       </main>
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 max-w-lg mx-auto">

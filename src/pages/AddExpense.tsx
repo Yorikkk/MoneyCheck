@@ -247,7 +247,7 @@ export default function AddExpense() {
 
   return (
     <div>
-      <div className="pb-20">
+      <div>
       <div className="flex bg-gray-100 rounded-lg p-1 mb-4">
         {tabs.map(({ key, label }) => (
           <button
