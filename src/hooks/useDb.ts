@@ -1,6 +1,6 @@
 import dayjs from 'dayjs'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, type Account, type Bank, type AccountCashback } from '@/db'
+import { db, type Bank, type Cashback, type AccountCashback } from '@/db'
 
 export function useTransactionsByMonth(year: number, month: number) {
   const from = new Date(year, month - 1, 1)
@@ -144,6 +144,7 @@ export function useCashbackSummary(year: number, month: number) {
 
     const cbMap = new Map(allCb.map((cb) => [cb.id!, cb]))
     const catMap = new Map(categories.map((c) => [c.id!, c]))
+    const accountMap = new Map(accounts.map((a) => [a.id!, a]))
 
     function fmtDate(d: Date) {
       const dd = String(d.getDate()).padStart(2, '0')
@@ -165,67 +166,123 @@ export function useCashbackSummary(year: number, month: number) {
       return null
     }
 
-    const result: {
-      account: Account
-      bank: Bank
-      items: {
-        name: string
-        percent: number
-        categoryName?: string
-        dateRange: string | null
-        calculatedAmount: number
-      }[]
-    }[] = []
+    const acByAccount = new Map<number, AccountCashback[]>()
+    for (const ac of allAc) {
+      if (ac.startDate <= lastDay && ac.endDate >= firstDay) {
+        let list = acByAccount.get(ac.accountId)
+        if (!list) { list = []; acByAccount.set(ac.accountId, list) }
+        list.push(ac)
+      }
+    }
 
-    for (const account of accounts) {
-      const activeAc = allAc.filter(
-        (ac) => ac.accountId === account.id && ac.startDate <= lastDay && ac.endDate >= firstDay
-      )
-      if (activeAc.length === 0) continue
+    const ruleAmounts = new Map<number, number>()
 
-      const bank = banks.find((b) => b.id === account.bankId)
-      if (!bank) continue
+    for (const t of transactions) {
+      if (t.type !== 'expense' || t.amount <= 0) continue
 
-      const items: {
-        name: string
-        percent: number
-        categoryName?: string
-        dateRange: string | null
-        calculatedAmount: number
-      }[] = []
+      const acList = acByAccount.get(t.accountId)
+      if (!acList || acList.length === 0) continue
 
-      for (const ac of activeAc) {
+      const cbList: { ac: AccountCashback; cb: Cashback }[] = []
+      for (const ac of acList) {
         const cb = cbMap.get(ac.cashbackId)
-        if (!cb) continue
+        if (cb) cbList.push({ ac, cb })
+      }
 
-        let qualifying = transactions.filter(
-          (t) => t.accountId === account.id && t.type === 'expense' && t.amount > 0
-        )
-        if (ac.categoryId) {
-          qualifying = qualifying.filter((t) => t.categoryId === ac.categoryId)
-        }
-        if (cb.mccList && cb.mccList.length > 0) {
-          qualifying = qualifying.filter((t) => t.mcc != null && cb.mccList!.includes(t.mcc))
-        }
+      let found = cbList.find((x) => x.ac.categoryId != null && x.ac.categoryId === t.categoryId)
+      if (!found && t.mcc != null) {
+        found = cbList.find((x) => x.cb.mccList && x.cb.mccList.length > 0 && x.cb.mccList.includes(t.mcc!))
+      }
+      if (!found) {
+        found = cbList.find((x) => x.ac.categoryId == null && (!x.cb.mccList || x.cb.mccList.length === 0))
+      }
 
-        const totalSpent = qualifying.reduce((s, t) => s + t.amount, 0)
-        const calculatedAmount = Math.round(totalSpent * (ac.percent / 100) * 100) / 100
+      if (found) {
+        const acId = found.ac.id!
+        ruleAmounts.set(acId, (ruleAmounts.get(acId) ?? 0) + (t.amount * found.ac.percent) / 100)
+      }
+    }
+
+    function itemKey(ac: AccountCashback, cb: Cashback): string {
+      return `${cb.name}|${ac.percent}|${ac.categoryId ?? ''}|${formatDateRange(ac) ?? ''}`
+    }
+
+    const bankGroups = new Map<number, {
+      bank: Bank
+      totalCashback: number
+      items: Map<string, {
+        name: string
+        percent: number
+        categoryName?: string
+        dateRange: string | null
+        calculatedAmount: number
+      }>
+    }>()
+
+    function addToBank(bank: Bank, ac: AccountCashback, cb: Cashback, amount: number) {
+      let group = bankGroups.get(bank.id!)
+      if (!group) {
+        group = { bank, totalCashback: 0, items: new Map() }
+        bankGroups.set(bank.id!, group)
+      }
+
+      const key = itemKey(ac, cb)
+      const existing = group.items.get(key)
+      if (existing) {
+        existing.calculatedAmount += amount
+      } else {
         const category = ac.categoryId ? catMap.get(ac.categoryId) : undefined
-
-        items.push({
+        group.items.set(key, {
           name: cb.name,
           percent: ac.percent,
           categoryName: category?.name,
           dateRange: formatDateRange(ac),
-          calculatedAmount,
+          calculatedAmount: amount,
         })
       }
-
-      if (items.length > 0) {
-        result.push({ account, bank, items })
-      }
+      group.totalCashback += amount
     }
 
-    return result
+    const processedIds = new Set<number>()
+
+    for (const [acId, amount] of ruleAmounts) {
+      const ac = allAc.find((a) => a.id === acId)
+      if (!ac) continue
+      const account = accountMap.get(ac.accountId)
+      if (!account) continue
+      const bank = banks.find((b) => b.id === account.bankId)
+      if (!bank) continue
+      const cb = cbMap.get(ac.cashbackId)
+      if (!cb) continue
+      addToBank(bank, ac, cb, amount)
+      processedIds.add(acId)
+    }
+
+    for (const ac of allAc) {
+      if (processedIds.has(ac.id!)) continue
+      if (ac.startDate > lastDay || ac.endDate < firstDay) continue
+      const account = accountMap.get(ac.accountId)
+      if (!account) continue
+      const bank = banks.find((b) => b.id === account.bankId)
+      if (!bank) continue
+      const cb = cbMap.get(ac.cashbackId)
+      if (!cb) continue
+      addToBank(bank, ac, cb, 0)
+    }
+
+    return [...bankGroups.values()]
+      .map((g) => ({
+        bank: g.bank,
+        totalCashback: Math.round(g.totalCashback * 100) / 100,
+        items: [...g.items.values()]
+          .map((item) => ({ ...item, calculatedAmount: Math.round(item.calculatedAmount * 100) / 100 }))
+          .sort((a, b) => {
+            const aPos = a.calculatedAmount > 0 ? 1 : 0
+            const bPos = b.calculatedAmount > 0 ? 1 : 0
+            if (aPos !== bPos) return bPos - aPos
+            return b.calculatedAmount - a.calculatedAmount
+          }),
+      }))
+      .sort((a, b) => a.bank.order - b.bank.order)
   }, [year, month])
 }

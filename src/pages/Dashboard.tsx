@@ -104,14 +104,23 @@ export default function Dashboard() {
 
       {cashbackSummary.length > 0 && (
         <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="text-sm font-medium text-gray-500 mb-3">💳 Кешбек за месяц</div>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium text-gray-500">💳 Кешбек за месяц</span>
+            <span className="text-green-600 font-bold">
+              +{formatCurrency(cashbackSummary.reduce((s, g) => s + g.totalCashback, 0))}
+            </span>
+          </div>
           <div className="space-y-3">
-            {(expanded ? cashbackSummary : cashbackSummary.slice(0, 2)).map(({ account, bank, items }) => (
-              <div key={account.id}>
-                <div className="flex items-center gap-2 mb-1.5">
-                  <span className="text-lg">{account.icon}</span>
-                  <span className="text-sm font-medium">{account.name}</span>
-                  <span className="text-xs text-gray-400">{bank.icon} {bank.name}</span>
+            {(expanded ? cashbackSummary : cashbackSummary.slice(0, 2)).map(({ bank, totalCashback, items }) => (
+              <div key={bank.id}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{bank.icon}</span>
+                    <span className="text-sm font-medium">{bank.name}</span>
+                  </div>
+                  <span className={`font-semibold text-sm ${totalCashback > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                    +{formatCurrency(totalCashback)}
+                  </span>
                 </div>
                 <div className="ml-8 space-y-1">
                   {items.map((item, i) => (
@@ -122,11 +131,9 @@ export default function Dashboard() {
                         {item.categoryName && <span className="text-xs text-gray-400"> · {item.categoryName}</span>}
                         {item.dateRange && <span className="text-xs text-gray-400"> · {item.dateRange}</span>}
                       </div>
-                      {item.calculatedAmount > 0 && (
-                        <span className="text-green-600 font-semibold shrink-0 ml-2">
-                          +{formatCurrency(item.calculatedAmount)}
-                        </span>
-                      )}
+                      <span className={`font-semibold shrink-0 ml-2 ${item.calculatedAmount > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                        +{formatCurrency(item.calculatedAmount)}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -138,7 +145,7 @@ export default function Dashboard() {
               onClick={() => setExpanded(!expanded)}
               className="mt-3 text-sm text-blue-600"
             >
-              {expanded ? '← Свернуть' : `Ещё ${cashbackSummary.length - 2} ${cashbackSummary.length - 2 === 1 ? 'счёт' : 'счета'} →`}
+              {expanded ? '← Свернуть' : `Ещё ${cashbackSummary.length - 2} ${cashbackSummary.length - 2 === 1 ? 'банк' : 'банка'} →`}
             </button>
           )}
         </div>
