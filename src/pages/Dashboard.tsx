@@ -38,16 +38,20 @@ export default function Dashboard() {
   const expenseTotal = transactions.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
   const recentTx = [...transactions].slice(0, 5)
 
+  const catMap = new Map(categories.map((c) => [c.id!, c]))
+
   const expensesByCat: Record<number, number> = {}
   for (const t of transactions) {
     if (t.type === 'expense') {
-      expensesByCat[t.categoryId!] = (expensesByCat[t.categoryId!] ?? 0) + t.amount
+      const cat = catMap.get(t.categoryId!)
+      const rootId = cat?.parentId ?? t.categoryId!
+      expensesByCat[rootId] = (expensesByCat[rootId] ?? 0) + t.amount
     }
   }
 
   const pieData = Object.entries(expensesByCat)
     .map(([catId, amount]) => {
-      const cat = categories.find((c) => c.id === Number(catId))
+      const cat = catMap.get(Number(catId))
       return { name: cat?.name ?? '?', value: amount, color: cat?.color ?? '#9E9E9E' }
     })
     .sort((a, b) => b.value - a.value)

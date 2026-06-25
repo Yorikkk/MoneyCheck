@@ -50,16 +50,20 @@ export default function Reports() {
     return d.month() + 1 === now.month() + 1 && d.year() === now.year()
   })
 
+  const catMap = new Map(categories.map((c) => [c.id!, c]))
+
   const catSpending: Record<number, number> = {}
   for (const tx of currentTx) {
     if (tx.type === 'expense') {
-      catSpending[tx.categoryId!] = (catSpending[tx.categoryId!] ?? 0) + tx.amount
+      const cat = catMap.get(tx.categoryId!)
+      const rootId = cat?.parentId ?? tx.categoryId!
+      catSpending[rootId] = (catSpending[rootId] ?? 0) + tx.amount
     }
   }
 
   const pieData = Object.entries(catSpending)
     .map(([catId, amount]) => {
-      const cat = categories.find((c) => c.id === Number(catId))
+      const cat = catMap.get(Number(catId))
       return { name: cat?.name ?? '?', value: amount, color: cat?.color ?? '#9E9E9E' }
     })
     .sort((a, b) => b.value - a.value)
