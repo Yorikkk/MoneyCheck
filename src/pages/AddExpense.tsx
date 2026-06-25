@@ -247,6 +247,7 @@ export default function AddExpense() {
 
   return (
     <div>
+      <div className="pb-20">
       <div className="flex bg-gray-100 rounded-lg p-1 mb-4">
         {tabs.map(({ key, label }) => (
           <button
@@ -477,6 +478,9 @@ export default function AddExpense() {
         )}
       </div>
 
+      </div>
+
+      <div className="sticky bottom-0 bg-gray-50 pt-4 border-t border-gray-200">
       <button
         onClick={handleSubmit}
         disabled={saving || !getTotalAmount() || !isFormValid() || !!placeError}
@@ -492,6 +496,7 @@ export default function AddExpense() {
                 ? 'Записать расход'
                 : 'Записать доход'}
       </button>
+      </div>
     </div>
   )
 }
