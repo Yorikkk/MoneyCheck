@@ -492,7 +492,7 @@ export default function AddExpense() {
 
       </div>
 
-      <div className="sticky bottom-0 bg-gray-50 pt-4 border-t border-gray-200">
+      <div className="fixed left-0 right-0 z-10 bg-gray-50 pt-4 border-t border-gray-200 px-4 max-w-lg mx-auto" style={{ bottom: 'calc(4rem + env(safe-area-inset-bottom))' }}>
       <button
         onClick={handleSubmit}
         disabled={saving || !getTotalAmount() || !isFormValid() || !!placeError}
