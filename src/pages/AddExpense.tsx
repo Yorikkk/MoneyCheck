@@ -28,7 +28,7 @@ function getDestEffect(kind: string | undefined, amount: number, principalAmount
 export default function AddExpense() {
   const navigate = useNavigate()
   const location = useLocation()
-  const locationState = location.state as { accountId?: number; editTx?: Transaction } | null
+  const locationState = location.state as { accountId?: number; editTx?: Transaction; repeatTx?: Transaction } | null
 
   const isEditing = !!locationState?.editTx
 
@@ -55,6 +55,18 @@ export default function AddExpense() {
       setAccountId(tx.accountId)
       setTransferToAccountId(tx.transferToAccountId ?? null)
       setDate(dayjs(tx.date).format('YYYY-MM-DD'))
+      setDescription(tx.description)
+      setPrincipalAmount(tx.principalAmount ? String(tx.principalAmount) : '')
+      setInterestAmount(tx.interestAmount ? String(tx.interestAmount) : '')
+      setMcc(tx.mcc ? String(tx.mcc) : '')
+      setBrowseParent(null)
+    } else if (locationState?.repeatTx) {
+      const tx = locationState.repeatTx
+      setType(tx.type)
+      setAmount(String(tx.amount))
+      setCategoryId(tx.categoryId ?? null)
+      setAccountId(tx.accountId)
+      setTransferToAccountId(tx.transferToAccountId ?? null)
       setDescription(tx.description)
       setPrincipalAmount(tx.principalAmount ? String(tx.principalAmount) : '')
       setInterestAmount(tx.interestAmount ? String(tx.interestAmount) : '')

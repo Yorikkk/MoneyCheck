@@ -164,12 +164,20 @@ const account = accounts.find((a) => a.id === tx.accountId)
                           <div className="text-sm font-semibold text-blue-600">
                             {formatCurrency(tx.amount)}
                           </div>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleDelete(tx) }}
-                            className="text-xs text-gray-400 hover:text-red-500"
-                          >
-                            🗑️
-                          </button>
+                          <div className="flex justify-end gap-1">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); navigate('/add', { state: { repeatTx: tx } }) }}
+                              className="text-xs text-gray-400 hover:text-blue-500"
+                            >
+                              🔄
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleDelete(tx) }}
+                              className="text-xs text-gray-400 hover:text-red-500"
+                            >
+                              🗑️
+                            </button>
+                          </div>
                         </div>
                       </>
                     ) : (
@@ -192,12 +200,20 @@ const account = accounts.find((a) => a.id === tx.accountId)
                           {cashback > 0 && (
                             <div className="text-xs text-green-500 font-medium">💳 +{formatCurrency(cashback)}</div>
                           )}
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleDelete(tx) }}
-                            className="text-xs text-gray-400 hover:text-red-500"
-                          >
-                            🗑️
-                          </button>
+                          <div className="flex justify-end gap-1">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); navigate('/add', { state: { repeatTx: tx } }) }}
+                              className="text-xs text-gray-400 hover:text-blue-500"
+                            >
+                              🔄
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleDelete(tx) }}
+                              className="text-xs text-gray-400 hover:text-red-500"
+                            >
+                              🗑️
+                            </button>
+                          </div>
                         </div>
                       </>
                     )}
