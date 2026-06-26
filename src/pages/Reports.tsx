@@ -64,8 +64,10 @@ export default function Reports() {
   const pieData = Object.entries(catSpending)
     .map(([catId, amount]) => {
       const cat = catMap.get(Number(catId))
-      return { name: cat?.name ?? '?', value: amount, color: cat?.color ?? '#9E9E9E' }
+      if (!cat) return null
+      return { name: cat.name, value: amount, color: cat.color }
     })
+    .filter((x): x is NonNullable<typeof x> => x !== null)
     .sort((a, b) => b.value - a.value)
 
   return (
