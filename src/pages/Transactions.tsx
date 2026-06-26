@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import dayjs from 'dayjs'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAllTransactions, useAccounts, useCategories, useBanks, useAccountTypes, useCashbackForTransactions } from '@/hooks/useDb'
@@ -30,6 +30,35 @@ export default function Transactions() {
 
   const [filterAccount, setFilterAccount] = useState<number | null>(locationState?.filterAccount ?? null)
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense' | 'transfer'>('all')
+  const [datePreset, setDatePreset] = useState<'month' | 'lastMonth' | '90days' | 'year' | 'lastYear' | 'custom'>('month')
+  const [customDateFrom, setCustomDateFrom] = useState('')
+  const [customDateTo, setCustomDateTo] = useState('')
+
+  const lastRangeRef = useRef({ from: dayjs().startOf('month').format('YYYY-MM-DD'), to: dayjs().endOf('month').format('YYYY-MM-DD') })
+
+  useEffect(() => {
+    if (datePreset === 'custom') {
+      setCustomDateFrom(lastRangeRef.current.from)
+      setCustomDateTo(lastRangeRef.current.to)
+    } else {
+      let from: dayjs.Dayjs, to: dayjs.Dayjs
+      switch (datePreset) {
+        case 'month':
+          from = dayjs().startOf('month'); to = dayjs().endOf('month'); break
+        case 'lastMonth':
+          from = dayjs().subtract(1, 'month').startOf('month'); to = dayjs().subtract(1, 'month').endOf('month'); break
+        case '90days':
+          from = dayjs().subtract(90, 'day').startOf('day'); to = dayjs().endOf('day'); break
+        case 'year':
+          from = dayjs().startOf('year'); to = dayjs().endOf('year'); break
+        case 'lastYear':
+          from = dayjs().subtract(1, 'year').startOf('year'); to = dayjs().subtract(1, 'year').endOf('year'); break
+      }
+      if (from && to) {
+        lastRangeRef.current = { from: from.format('YYYY-MM-DD'), to: to.format('YYYY-MM-DD') }
+      }
+    }
+  }, [datePreset])
 
   useEffect(() => {
     if (locationState?.filterAccount) {
@@ -37,12 +66,33 @@ export default function Transactions() {
     }
   }, [locationState?.filterAccount])
 
+  const dateRange = useMemo(() => {
+    switch (datePreset) {
+      case 'month':
+        return { from: dayjs().startOf('month').toDate(), to: dayjs().endOf('month').toDate() }
+      case 'lastMonth':
+        return { from: dayjs().subtract(1, 'month').startOf('month').toDate(), to: dayjs().subtract(1, 'month').endOf('month').toDate() }
+      case '90days':
+        return { from: dayjs().subtract(90, 'day').startOf('day').toDate(), to: dayjs().endOf('day').toDate() }
+      case 'year':
+        return { from: dayjs().startOf('year').toDate(), to: dayjs().endOf('year').toDate() }
+      case 'lastYear':
+        return { from: dayjs().subtract(1, 'year').startOf('year').toDate(), to: dayjs().subtract(1, 'year').endOf('year').toDate() }
+      case 'custom':
+        return {
+          from: customDateFrom ? dayjs(customDateFrom).startOf('day').toDate() : dayjs('2000-01-01').toDate(),
+          to: customDateTo ? dayjs(customDateTo).endOf('day').toDate() : dayjs('2099-12-31').toDate(),
+        }
+    }
+  }, [datePreset, customDateFrom, customDateTo])
+
   const filtered = useMemo(() => {
     let list = allTx
     if (filterAccount) list = list.filter((t) => t.accountId === filterAccount || t.transferToAccountId === filterAccount)
     if (filterType !== 'all') list = list.filter((t) => t.type === filterType)
+    list = list.filter((t) => t.date >= dateRange.from && t.date <= dateRange.to)
     return list
-  }, [allTx, filterAccount, filterType])
+  }, [allTx, filterAccount, filterType, dateRange])
 
   const groups = useMemo(() => {
     const map: Record<string, Transaction[]> = {}
@@ -104,9 +154,9 @@ export default function Transactions() {
         </button>
       </div>
 
-      <div className="flex gap-2 mb-4">
+      <div className="flex flex-col gap-2 mb-4">
         <select
-          className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
           value={filterAccount ?? ''}
           onChange={(e) => setFilterAccount(Number(e.target.value) || null)}
         >
@@ -115,16 +165,46 @@ export default function Transactions() {
             <option key={a.id} value={a.id}>{a.icon} {a.name} · {getBankLabel(a.bankId)}</option>
           ))}
         </select>
-        <select
-          className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
-          value={filterType}
-          onChange={(e) => setFilterType(e.target.value as typeof filterType)}
-        >
-          <option value="all">Все</option>
-          <option value="expense">Расходы</option>
-          <option value="income">Доходы</option>
-          <option value="transfer">Переводы</option>
-        </select>
+        <div className="flex gap-2">
+          <select
+            className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value as typeof filterType)}
+          >
+            <option value="all">Все</option>
+            <option value="expense">Расходы</option>
+            <option value="income">Доходы</option>
+            <option value="transfer">Переводы</option>
+          </select>
+          <select
+            className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+            value={datePreset}
+            onChange={(e) => setDatePreset(e.target.value as typeof datePreset)}
+          >
+            <option value="month">Месяц</option>
+            <option value="lastMonth">Прошлый месяц</option>
+            <option value="90days">90 дней</option>
+            <option value="year">Год</option>
+            <option value="lastYear">Прошлый год</option>
+            <option value="custom">Пользовательский выбор</option>
+          </select>
+        </div>
+        {datePreset === 'custom' && (
+          <div className="flex gap-2">
+            <input
+              type="date"
+              className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+              value={customDateFrom}
+              onChange={(e) => setCustomDateFrom(e.target.value)}
+            />
+            <input
+              type="date"
+              className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+              value={customDateTo}
+              onChange={(e) => setCustomDateTo(e.target.value)}
+            />
+          </div>
+        )}
       </div>
 
       {groups.length === 0 && (
