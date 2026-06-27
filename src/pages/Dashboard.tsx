@@ -2,7 +2,6 @@ import { useState } from 'react'
 import dayjs from 'dayjs'
 import { useTransactionsByMonth, useAccounts, useCategories, useDebts, useAccountTypes, useBanks, useCashbackSummary } from '@/hooks/useDb'
 import { formatCurrency } from '@/lib/utils'
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
 
 const MONTHS = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек']
 
@@ -37,27 +36,6 @@ export default function Dashboard() {
   const incomeTotal = transactions.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0)
   const expenseTotal = transactions.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
   const recentTx = [...transactions].slice(0, 5)
-
-  const catMap = new Map(categories.map((c) => [c.id!, c]))
-
-  const expensesByCat: Record<number, number> = {}
-  for (const t of transactions) {
-    if (t.type === 'expense') {
-      const cat = catMap.get(t.categoryId!)
-      const rootId = cat?.parentId ?? t.categoryId!
-      expensesByCat[rootId] = (expensesByCat[rootId] ?? 0) + t.amount
-    }
-  }
-
-  const pieData = Object.entries(expensesByCat)
-    .map(([catId, amount]) => {
-      const cat = catMap.get(Number(catId))
-      if (!cat) return null
-      return { name: cat.name, value: amount, color: cat.color }
-    })
-    .filter((x): x is NonNullable<typeof x> => x !== null)
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 8)
 
   function prevMonth() {
     if (month === 0) { setMonth(11); setYear(year - 1) }
@@ -154,34 +132,6 @@ export default function Dashboard() {
               {expanded ? '← Свернуть' : `Ещё ${cashbackSummary.length - 2} ${cashbackSummary.length - 2 === 1 ? 'банк' : 'банка'} →`}
             </button>
           )}
-        </div>
-      )}
-
-      {pieData.length > 0 && (
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="text-sm font-medium text-gray-500 mb-2">Расходы по категориям</div>
-          <div className="flex items-center gap-4">
-            <div className="w-32 h-32 shrink-0">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={30} outerRadius={55} dataKey="value" strokeWidth={0}>
-                    {pieData.map((entry, i) => (
-                      <Cell key={i} fill={entry.color} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="flex-1 min-w-0 space-y-1.5">
-              {pieData.slice(0, 5).map((item) => (
-                <div key={item.name} className="flex items-center gap-2 text-xs">
-                  <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
-                  <span className="truncate flex-1">{item.name}</span>
-                  <span className="font-medium">{formatCurrency(item.value)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       )}
 
