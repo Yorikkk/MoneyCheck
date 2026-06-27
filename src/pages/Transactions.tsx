@@ -1,10 +1,11 @@
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useMemo, useEffect, useRef } from 'react'
 import dayjs from 'dayjs'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAllTransactions, useAccounts, useCategories, useBanks, useAccountTypes, useCashbackForTransactions } from '@/hooks/useDb'
 import { deleteTransaction, updateAccount } from '@/db'
 import { formatCurrency } from '@/lib/utils'
 import type { Transaction } from '@/db'
+import { useTransactionFiltersStore } from '@/stores/transactionFiltersStore'
 
 export default function Transactions() {
   const location = useLocation()
@@ -28,11 +29,13 @@ export default function Transactions() {
     return bank ? `${bank.icon} ${bank.name}` : ''
   }
 
-  const [filterAccount, setFilterAccount] = useState<number | null>(locationState?.filterAccount ?? null)
-  const [filterType, setFilterType] = useState<'all' | 'income' | 'expense' | 'transfer'>('all')
-  const [datePreset, setDatePreset] = useState<'month' | 'lastMonth' | '90days' | 'year' | 'lastYear' | 'custom'>('month')
-  const [customDateFrom, setCustomDateFrom] = useState('')
-  const [customDateTo, setCustomDateTo] = useState('')
+  const {
+    filterAccount, setFilterAccount,
+    filterType, setFilterType,
+    datePreset, setDatePreset,
+    customDateFrom, setCustomDateFrom,
+    customDateTo, setCustomDateTo,
+  } = useTransactionFiltersStore()
 
   const lastRangeRef = useRef({ from: dayjs().startOf('month').format('YYYY-MM-DD'), to: dayjs().endOf('month').format('YYYY-MM-DD') })
 
