@@ -223,6 +223,7 @@ export default function Transactions() {
             <div className="space-y-1">
               {txs.map((tx) => {
                 const cat = categories.find((c) => c.id === tx.categoryId)
+                const parentCat = cat?.parentId ? categories.find((c) => c.id === cat.parentId) : undefined
 const account = accounts.find((a) => a.id === tx.accountId)
                 const toAccount = accounts.find((a) => a.id === tx.transferToAccountId)
                 const cashback = tx.type === 'expense' ? getCashback(tx) : 0
@@ -267,7 +268,7 @@ const account = accounts.find((a) => a.id === tx.accountId)
                       <>
                         <span className="text-lg">{cat?.icon ?? '📦'}</span>
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium truncate">{cat?.name ?? '—'}{tx.description ? `, ${tx.description}` : ''}</div>
+                          <div className="text-sm font-medium truncate">{parentCat ? `${parentCat.name} · ` : ''}{cat?.name ?? '—'}{tx.description ? `, ${tx.description}` : ''}</div>
                           <div className="text-xs text-gray-400 truncate">{account?.name} · {getBankLabel(account?.bankId ?? 0)}</div>
                           {(tx.mcc ?? cat?.mcc) && (
                             <div className="text-xs text-gray-400 font-mono">MCC {tx.mcc ?? cat?.mcc}</div>

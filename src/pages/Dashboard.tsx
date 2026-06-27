@@ -150,6 +150,7 @@ export default function Dashboard() {
           <div className="space-y-2">
             {recentTx.map((tx) => {
               const cat = categories.find((c) => c.id === tx.categoryId)
+              const parentCat = cat?.parentId ? categories.find((c) => c.id === cat.parentId) : undefined
               const account = accounts.find((a) => a.id === tx.accountId)
               return (
                 <div key={tx.id} className="flex items-center gap-3 text-sm">
@@ -158,7 +159,7 @@ export default function Dashboard() {
                     <div className="truncate font-medium">
                       {tx.type === 'transfer'
                         ? `Перевод${tx.description ? `, ${tx.description}` : ''}`
-                        : `${cat?.name ?? '—'}${tx.description ? `, ${tx.description}` : ''}`}
+                        : `${parentCat ? `${parentCat.name} · ` : ''}${cat?.name ?? '—'}${tx.description ? `, ${tx.description}` : ''}`}
                     </div>
                     <div className="text-xs text-gray-400">
                       {dayjs(tx.date).format('D MMM')} · {tx.type === 'transfer'
