@@ -14,6 +14,7 @@ interface TransactionFiltersState {
   setDatePreset: (p: DatePreset) => void
   setCustomDateFrom: (d: string) => void
   setCustomDateTo: (d: string) => void
+  resetFilters: () => void
 }
 
 export const useTransactionFiltersStore = create<TransactionFiltersState>((set) => ({
@@ -27,4 +28,5 @@ export const useTransactionFiltersStore = create<TransactionFiltersState>((set) 
   setDatePreset: (p) => set({ datePreset: p }),
   setCustomDateFrom: (d) => set({ customDateFrom: d }),
   setCustomDateTo: (d) => set({ customDateTo: d }),
+  resetFilters: () => set({ filterAccount: null, filterType: 'all', datePreset: 'month', customDateFrom: '', customDateTo: '' }),
 }))

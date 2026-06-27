@@ -35,6 +35,7 @@ export default function Transactions() {
     datePreset, setDatePreset,
     customDateFrom, setCustomDateFrom,
     customDateTo, setCustomDateTo,
+    resetFilters,
   } = useTransactionFiltersStore()
 
   const lastRangeRef = useRef({ from: dayjs().startOf('month').format('YYYY-MM-DD'), to: dayjs().endOf('month').format('YYYY-MM-DD') })
@@ -149,12 +150,21 @@ export default function Transactions() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">История</h1>
-        <button
-          onClick={() => navigate('/add', { state: { accountId: filterAccount } })}
-          className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-600 text-white text-lg font-bold"
-        >
-          +
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={resetFilters}
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-300 text-white text-lg"
+            title="Сбросить фильтры"
+          >
+            ⟳
+          </button>
+          <button
+            onClick={() => navigate('/add', { state: { accountId: filterAccount } })}
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-600 text-white text-lg font-bold"
+          >
+            +
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-2 mb-4">
