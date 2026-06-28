@@ -199,7 +199,7 @@ export function useCashbackSummary(year: number, month: number) {
 
       if (found) {
         const acId = found.ac.id!
-        ruleAmounts.set(acId, (ruleAmounts.get(acId) ?? 0) + (t.amount * found.ac.percent) / 100)
+        ruleAmounts.set(acId, (ruleAmounts.get(acId) ?? 0) + Math.floor((t.amount * found.ac.percent) / 100))
       }
     }
 
@@ -273,9 +273,9 @@ export function useCashbackSummary(year: number, month: number) {
     return [...bankGroups.values()]
       .map((g) => ({
         bank: g.bank,
-        totalCashback: Math.round(g.totalCashback * 100) / 100,
+        totalCashback: g.totalCashback,
         items: [...g.items.values()]
-          .map((item) => ({ ...item, calculatedAmount: Math.round(item.calculatedAmount * 100) / 100 }))
+          .map((item) => ({ ...item, calculatedAmount: item.calculatedAmount }))
           .sort((a, b) => {
             const aPos = a.calculatedAmount > 0 ? 1 : 0
             const bPos = b.calculatedAmount > 0 ? 1 : 0
@@ -324,7 +324,7 @@ export function useCashbackForTransactions() {
       }
 
       if (found) {
-        return Math.round((tx.amount * found.ac.percent) / 100 * 100) / 100
+        return Math.floor((tx.amount * found.ac.percent) / 100)
       }
       return 0
     }
