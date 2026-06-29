@@ -6,6 +6,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
 import { ExpenseStructureSection } from '@/components/reports/ExpenseStructureSection'
+import { IncomeStructureSection } from '@/components/reports/IncomeStructureSection'
 
 const MONTHS = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек']
 
@@ -90,6 +91,13 @@ export default function Reports() {
       </div>
 
       <ExpenseStructureSection
+        transactions={periodTx}
+        categories={categories}
+        accounts={accounts}
+        periodLabel={PERIOD_LABELS[period]}
+      />
+
+      <IncomeStructureSection
         transactions={periodTx}
         categories={categories}
         accounts={accounts}
