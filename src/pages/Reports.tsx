@@ -18,7 +18,7 @@ const PERIOD_LABELS: Record<number, string> = {
 
 export default function Reports() {
   const now = dayjs()
-  const [period, setPeriod] = useState(3)
+  const [period, setPeriod] = useState(1)
   const allTx = useAllTransactions() ?? []
   const categories = useCategories() ?? []
   const accounts = useAccounts() ?? []
