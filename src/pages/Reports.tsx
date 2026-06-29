@@ -1,20 +1,27 @@
 import { useState, useMemo } from 'react'
 import dayjs from 'dayjs'
-import { useAllTransactions, useCategories } from '@/hooks/useDb'
+import { useAllTransactions, useCategories, useAccounts } from '@/hooks/useDb'
 import { formatCurrency } from '@/lib/utils'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell,
 } from 'recharts'
+import { ExpenseStructureSection } from '@/components/reports/ExpenseStructureSection'
 
 const MONTHS = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек']
-const COLORS = ['#F44336', '#E91E63', '#9C27B0', '#3F51B5', '#2196F3', '#009688', '#4CAF50', '#FF9800', '#795548', '#607D8B']
+
+const PERIOD_LABELS: Record<number, string> = {
+  1: 'месяц',
+  3: '3 месяца',
+  6: '6 месяцев',
+  12: 'год',
+}
 
 export default function Reports() {
   const now = dayjs()
   const [period, setPeriod] = useState(3)
   const allTx = useAllTransactions() ?? []
   const categories = useCategories() ?? []
+  const accounts = useAccounts() ?? []
 
   const months = useMemo(() => {
     const result: { month: number; year: number; label: string }[] = []
@@ -43,30 +50,12 @@ export default function Reports() {
     })
   }, [allTx, months])
 
-  const currentTx = allTx.filter((t) => {
-    const d = dayjs(t.date)
-    return d.month() + 1 === now.month() + 1 && d.year() === now.year()
-  })
-
-  const catMap = new Map(categories.map((c) => [c.id!, c]))
-
-  const catSpending: Record<number, number> = {}
-  for (const tx of currentTx) {
-    if (tx.type === 'expense') {
-      const cat = catMap.get(tx.categoryId!)
-      const rootId = cat?.parentId ?? tx.categoryId!
-      catSpending[rootId] = (catSpending[rootId] ?? 0) + tx.amount
-    }
-  }
-
-  const pieData = Object.entries(catSpending)
-    .map(([catId, amount]) => {
-      const cat = catMap.get(Number(catId))
-      if (!cat) return null
-      return { name: cat.name, value: amount, color: cat.color }
+  const periodTx = useMemo(() => {
+    return allTx.filter((t) => {
+      const d = dayjs(t.date)
+      return months.some((m) => d.month() + 1 === m.month && d.year() === m.year)
     })
-    .filter((x): x is NonNullable<typeof x> => x !== null)
-    .sort((a, b) => b.value - a.value)
+  }, [allTx, months])
 
   return (
     <div className="space-y-4">
@@ -100,34 +89,12 @@ export default function Reports() {
         </div>
       </div>
 
-      {pieData.length > 0 && (
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="text-sm font-medium text-gray-500 mb-3">Структура расходов за месяц</div>
-          <div className="flex items-center gap-4">
-            <div className="w-36 h-36 shrink-0">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={40} outerRadius={65} dataKey="value">
-                    {pieData.map((_, i) => (
-                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="flex-1 min-w-0 space-y-1.5">
-              {pieData.slice(0, 8).map((item, i) => (
-                <div key={item.name} className="flex items-center gap-2 text-xs">
-                  <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                  <span className="truncate flex-1">{item.name}</span>
-                  <span className="font-medium">{formatCurrency(item.value)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      </div>
+      <ExpenseStructureSection
+        transactions={periodTx}
+        categories={categories}
+        accounts={accounts}
+        periodLabel={PERIOD_LABELS[period]}
+      />
+    </div>
   )
 }
