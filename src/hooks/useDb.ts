@@ -130,21 +130,33 @@ export function useCashbackSummary(year: number, month: number) {
     const firstDay = new Date(year, month - 1, 1)
     const lastDay = new Date(year, month, 0, 23, 59, 59)
 
-    const [allAc, allCb, accounts, banks, categories, transactions] = await Promise.all([
+    const [allAc, allCb, accounts, banks, categories] = await Promise.all([
       db.accountCashbacks.toArray(),
       db.cashbacks.toArray(),
       db.accounts.orderBy('order').toArray(),
       db.banks.orderBy('order').toArray(),
       db.categories.toArray(),
-      db.transactions
-        .where('date')
-        .between(firstDay, lastDay, true, true)
-        .toArray(),
     ])
 
     const cbMap = new Map(allCb.map((cb) => [cb.id!, cb]))
     const catMap = new Map(categories.map((c) => [c.id!, c]))
     const accountMap = new Map(accounts.map((a) => [a.id!, a]))
+
+    const acInMonth = allAc.filter((ac) => ac.startDate <= lastDay && ac.endDate >= firstDay)
+
+    let minDate = firstDay
+    let maxDate = lastDay
+    for (const ac of acInMonth) {
+      if (ac.startDate < minDate) minDate = ac.startDate
+      if (ac.endDate > maxDate) maxDate = ac.endDate
+    }
+
+    const allTx = await db.transactions
+      .where('date')
+      .between(minDate, maxDate, true, true)
+      .toArray()
+
+    const sortedTx = [...allTx].sort((a, b) => a.date.getTime() - b.date.getTime())
 
     function fmtDate(d: Date) {
       const dd = String(d.getDate()).padStart(2, '0')
@@ -167,17 +179,17 @@ export function useCashbackSummary(year: number, month: number) {
     }
 
     const acByAccount = new Map<number, AccountCashback[]>()
-    for (const ac of allAc) {
-      if (ac.startDate <= lastDay && ac.endDate >= firstDay) {
-        let list = acByAccount.get(ac.accountId)
-        if (!list) { list = []; acByAccount.set(ac.accountId, list) }
-        list.push(ac)
-      }
+    for (const ac of acInMonth) {
+      let list = acByAccount.get(ac.accountId)
+      if (!list) { list = []; acByAccount.set(ac.accountId, list) }
+      list.push(ac)
     }
+
+    const accumulated = new Map<number, number>()
 
     const ruleAmounts = new Map<number, number>()
 
-    for (const t of transactions) {
+    for (const t of sortedTx) {
       if (t.type !== 'expense' || t.amount <= 0 || t.noCashback) continue
 
       const acList = acByAccount.get(t.accountId)
@@ -185,6 +197,7 @@ export function useCashbackSummary(year: number, month: number) {
 
       const cbList: { ac: AccountCashback; cb: Cashback }[] = []
       for (const ac of acList) {
+        if (ac.startDate > t.date || ac.endDate < t.date) continue
         const cb = cbMap.get(ac.cashbackId)
         if (cb) cbList.push({ ac, cb })
       }
@@ -199,7 +212,21 @@ export function useCashbackSummary(year: number, month: number) {
 
       if (found) {
         const acId = found.ac.id!
-        ruleAmounts.set(acId, (ruleAmounts.get(acId) ?? 0) + Math.floor((t.amount * found.ac.percent) / 100))
+        const maxAmt = found.ac.maxAmount
+        const prevAccum = accumulated.get(acId) ?? 0
+
+        if (maxAmt != null && maxAmt > 0 && prevAccum >= maxAmt) continue
+
+        const calculated = Math.floor((t.amount * found.ac.percent) / 100)
+        let actual = calculated
+        if (maxAmt != null && maxAmt > 0) {
+          actual = Math.min(calculated, maxAmt - prevAccum)
+        }
+        accumulated.set(acId, prevAccum + actual)
+
+        if (t.date >= firstDay && t.date <= lastDay) {
+          ruleAmounts.set(acId, (ruleAmounts.get(acId) ?? 0) + actual)
+        }
       }
     }
 
@@ -216,6 +243,7 @@ export function useCashbackSummary(year: number, month: number) {
         categoryName?: string
         dateRange: string | null
         calculatedAmount: number
+        maxAmount?: number
       }>
     }>()
 
@@ -238,6 +266,7 @@ export function useCashbackSummary(year: number, month: number) {
           categoryName: category?.name,
           dateRange: formatDateRange(ac),
           calculatedAmount: amount,
+          maxAmount: ac.maxAmount && ac.maxAmount > 0 ? ac.maxAmount : undefined,
         })
       }
       group.totalCashback += amount
@@ -246,7 +275,7 @@ export function useCashbackSummary(year: number, month: number) {
     const processedIds = new Set<number>()
 
     for (const [acId, amount] of ruleAmounts) {
-      const ac = allAc.find((a) => a.id === acId)
+      const ac = acInMonth.find((a) => a.id === acId)
       if (!ac) continue
       const account = accountMap.get(ac.accountId)
       if (!account) continue
@@ -258,9 +287,8 @@ export function useCashbackSummary(year: number, month: number) {
       processedIds.add(acId)
     }
 
-    for (const ac of allAc) {
+    for (const ac of acInMonth) {
       if (processedIds.has(ac.id!)) continue
-      if (ac.startDate > lastDay || ac.endDate < firstDay) continue
       const account = accountMap.get(ac.accountId)
       if (!account) continue
       const bank = banks.find((b) => b.id === account.bankId)
@@ -275,7 +303,6 @@ export function useCashbackSummary(year: number, month: number) {
         bank: g.bank,
         totalCashback: g.totalCashback,
         items: [...g.items.values()]
-          .map((item) => ({ ...item, calculatedAmount: item.calculatedAmount }))
           .sort((a, b) => {
             const aPos = a.calculatedAmount > 0 ? 1 : 0
             const bPos = b.calculatedAmount > 0 ? 1 : 0
@@ -289,9 +316,10 @@ export function useCashbackSummary(year: number, month: number) {
 
 export function useCashbackForTransactions() {
   return useLiveQuery(async () => {
-    const [allAc, allCb] = await Promise.all([
+    const [allAc, allCb, allTx] = await Promise.all([
       db.accountCashbacks.toArray(),
       db.cashbacks.toArray(),
+      db.transactions.orderBy('date').toArray(),
     ])
 
     const cbMap = new Map(allCb.map((cb) => [cb.id!, cb]))
@@ -302,11 +330,14 @@ export function useCashbackForTransactions() {
       list.push(ac)
     }
 
-    return (tx: Transaction): number => {
-      if (tx.type !== 'expense' || tx.amount <= 0 || tx.noCashback) return 0
+    const cashbackByTxId = new Map<number, number>()
+    const accumulated = new Map<number, number>()
+
+    for (const tx of allTx) {
+      if (tx.type !== 'expense' || tx.amount <= 0 || tx.noCashback || tx.id == null) continue
 
       const acList = acByAccount.get(tx.accountId)
-      if (!acList || acList.length === 0) return 0
+      if (!acList || acList.length === 0) continue
 
       const cbList: { ac: AccountCashback; cb: Cashback }[] = []
       for (const ac of acList) {
@@ -323,10 +354,29 @@ export function useCashbackForTransactions() {
         found = cbList.find((x) => x.ac.categoryId == null && (!x.cb.mccList || x.cb.mccList.length === 0))
       }
 
-      if (found) {
-        return Math.floor((tx.amount * found.ac.percent) / 100)
+      if (found && found.ac.id != null) {
+        const acId = found.ac.id
+        const maxAmt = found.ac.maxAmount
+        const prevAccum = accumulated.get(acId) ?? 0
+
+        if (maxAmt != null && maxAmt > 0 && prevAccum >= maxAmt) {
+          cashbackByTxId.set(tx.id, 0)
+          continue
+        }
+
+        const calculated = Math.floor((tx.amount * found.ac.percent) / 100)
+        let actual = calculated
+        if (maxAmt != null && maxAmt > 0) {
+          actual = Math.min(calculated, maxAmt - prevAccum)
+        }
+        accumulated.set(acId, prevAccum + actual)
+        cashbackByTxId.set(tx.id, actual)
       }
-      return 0
+    }
+
+    return (tx: Transaction): number => {
+      if (tx.id == null) return 0
+      return cashbackByTxId.get(tx.id) ?? 0
     }
   }, [])
 }

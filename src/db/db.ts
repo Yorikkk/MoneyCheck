@@ -115,6 +115,7 @@ export interface AccountCashback {
   categoryId?: number
   startDate: Date
   endDate: Date
+  maxAmount?: number
 }
 
 const db = new Dexie('MoneyCheckDB') as Dexie & {
@@ -382,6 +383,20 @@ db.version(18).stores({
 })
 
 db.version(19).stores({
+  transactions: '++id, date, categoryId, type, accountId, transferToAccountId, familyMemberId',
+  categories: '++id, type, order, parentId',
+  budgets: '++id, [month+year], categoryId',
+  familyMembers: '++id',
+  accountTypes: '++id, order',
+  accounts: '++id, familyMemberId, order, bankId, typeId',
+  debts: '++id, status, familyMemberId',
+  debtPayments: '++id, debtId',
+  banks: '++id, name, order',
+  cashbacks: '++id, bankId, &[bankId+name]',
+  accountCashbacks: '++id, accountId, cashbackId, categoryId, [accountId+cashbackId]',
+})
+
+db.version(20).stores({
   transactions: '++id, date, categoryId, type, accountId, transferToAccountId, familyMemberId',
   categories: '++id, type, order, parentId',
   budgets: '++id, [month+year], categoryId',

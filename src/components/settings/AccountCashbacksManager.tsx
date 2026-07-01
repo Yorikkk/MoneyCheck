@@ -31,6 +31,7 @@ export default function AccountCashbacksManager({ account, bankName, bankIcon, o
   const [cashbackId, setCashbackId] = useState<number | ''>('')
   const [categoryId, setCategoryId] = useState<number | ''>('')
   const [percent, setPercent] = useState(0)
+  const [maxAmount, setMaxAmount] = useState<number | ''>('')
   const [startDate, setStartDate] = useState<string>('')
   const [endDate, setEndDate] = useState<string>('')
   const [saving, setSaving] = useState(false)
@@ -85,6 +86,7 @@ export default function AccountCashbacksManager({ account, bankName, bankIcon, o
     setCashbackId('')
     setCategoryId('')
     setPercent(0)
+    setMaxAmount('')
     setStartDate('')
     setEndDate('')
   }
@@ -95,6 +97,7 @@ export default function AccountCashbacksManager({ account, bankName, bankIcon, o
     setCashbackId('')
     setCategoryId('')
     setPercent(0)
+    setMaxAmount('')
     setStartDate(dayjs(dates.startDate).format('YYYY-MM-DD'))
     setEndDate(dayjs(dates.endDate).format('YYYY-MM-DD'))
     setShowForm(true)
@@ -105,6 +108,7 @@ export default function AccountCashbacksManager({ account, bankName, bankIcon, o
     setCashbackId(ac.cashbackId)
     setCategoryId(ac.categoryId ?? '')
     setPercent(ac.percent)
+    setMaxAmount(ac.maxAmount ?? '')
     setStartDate(dayjs(ac.startDate).format('YYYY-MM-DD'))
     setEndDate(dayjs(ac.endDate).format('YYYY-MM-DD'))
     setShowForm(true)
@@ -120,6 +124,7 @@ export default function AccountCashbacksManager({ account, bankName, bankIcon, o
         cashbackId: cashbackId as number,
         categoryId: categoryId || undefined,
         percent,
+        maxAmount: maxAmount === '' || maxAmount === 0 ? undefined : (maxAmount as number),
         startDate: dayjs(startDate).startOf('day').toDate(),
         endDate: dayjs(endDate).endOf('day').toDate(),
       }
@@ -228,6 +233,19 @@ export default function AccountCashbacksManager({ account, bankName, bankIcon, o
             />
           </div>
 
+          <div>
+            <label className="text-sm text-gray-500 mb-1 block">Максимальная сумма кешбека (0 — без лимита)</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              placeholder="0 — без лимита"
+              value={maxAmount}
+              onChange={(e) => setMaxAmount(e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
+            />
+          </div>
+
           <div className="flex gap-2">
             <div className="flex-1">
               <label className="text-sm text-gray-500 mb-1 block">Начало</label>
@@ -277,6 +295,7 @@ export default function AccountCashbacksManager({ account, bankName, bankIcon, o
                   </div>
                   <div className="text-xs text-gray-400 mt-0.5">
                     {formatPeriod(ac.startDate, ac.endDate)}
+                    {ac.maxAmount != null && ac.maxAmount > 0 && <> · до {ac.maxAmount} ₽</>}
                   </div>
                   {cb?.mccList && cb.mccList.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1">

@@ -116,7 +116,7 @@ export default function Dashboard() {
                         {item.dateRange && <span className="text-xs text-gray-400"> · {item.dateRange}</span>}
                       </div>
                       <span className={`font-semibold shrink-0 ml-2 ${item.calculatedAmount > 0 ? 'text-green-600' : 'text-gray-400'}`}>
-                        +{formatCurrency(item.calculatedAmount)}
+                        +{formatCurrency(item.calculatedAmount)}{item.maxAmount ? ` / ${formatCurrency(item.maxAmount)}` : ''}
                       </span>
                     </div>
                   ))}
