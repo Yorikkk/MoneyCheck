@@ -63,6 +63,10 @@ export function ExpenseStructureSection({ transactions, categories, accounts, pe
       .sort((a, b) => b.value - a.value)
   }, [expenseTx, catMap, drillCategory])
 
+  const currentPieData = drillCategory && !drillSubcategory ? subcatPieData : rootPieData
+
+  const total = useMemo(() => currentPieData.reduce((s, item) => s + item.value, 0), [currentPieData])
+
   const drillTx = useMemo(() => {
     if (!drillSubcategory) return []
     return expenseTx
@@ -96,8 +100,6 @@ export function ExpenseStructureSection({ transactions, categories, accounts, pe
   const headerText = drillCategory
     ? `Структура расходов: ${drillCategory.name}`
     : `Структура расходов за ${periodLabel}`
-
-  const currentPieData = drillCategory && !drillSubcategory ? subcatPieData : rootPieData
 
   return (
     <div className="bg-white rounded-xl p-4 shadow-sm">
@@ -164,6 +166,12 @@ export function ExpenseStructureSection({ transactions, categories, accounts, pe
                       />
                     ))}
                   </Pie>
+                  {total > 0 && (
+                    <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle"
+                      style={{ fontSize: 14, fontWeight: 600, fill: '#374151' }}>
+                      {formatCurrency(total)}
+                    </text>
+                  )}
                 </PieChart>
               </ResponsiveContainer>
             </div>
