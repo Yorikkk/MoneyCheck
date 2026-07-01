@@ -1,5 +1,6 @@
 import { db } from './db'
 import { CASHBACK_PRESETS } from '@/data/cashbackPresets'
+import { simpleHash } from '@/lib/utils'
 
 const EXPENSE_CATEGORIES = [
   { name: 'Супермаркеты', icon: '🛒', color: '#4CAF50', order: 1 },
@@ -147,7 +148,12 @@ export async function seedDefaults() {
     }
   }
 
-  await seedCashbackPresets()
+  const savedHash = localStorage.getItem('cashback_presets_hash')
+  const currentHash = simpleHash(JSON.stringify(CASHBACK_PRESETS))
+  if (savedHash !== currentHash) {
+    await seedCashbackPresets()
+    localStorage.setItem('cashback_presets_hash', currentHash)
+  }
 
   if (await db.familyMembers.count() === 0) {
     await db.familyMembers.add({ name: 'Я', color: '#2196F3' })
