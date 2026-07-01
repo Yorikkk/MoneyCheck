@@ -5,6 +5,8 @@ import { addAccountCashback, updateAccountCashback, deleteAccountCashback } from
 import { formatPeriod } from '@/lib/utils'
 import type { Account, Cashback, AccountCashback, Category } from '@/db'
 
+const MONTHS = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек']
+
 interface Props {
   account: Account
   bankName: string
@@ -34,6 +36,10 @@ export default function AccountCashbacksManager({ account, bankName, bankIcon, o
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
+  const now = dayjs()
+  const [month, setMonth] = useState(now.month())
+  const [year, setYear] = useState(now.year())
+
   const bankCashbackMap: Record<number, Cashback> = {}
   for (const cb of bankCashbacks) {
     bankCashbackMap[cb.id!] = cb
@@ -52,6 +58,26 @@ export default function AccountCashbacksManager({ account, bankName, bankIcon, o
     }
     return { roots, children }
   }, [allCategories])
+
+  function prevMonth() {
+    if (month === 0) { setMonth(11); setYear(year - 1) }
+    else { setMonth(month - 1) }
+  }
+
+  function nextMonth() {
+    if (month === 11) { setMonth(0); setYear(year + 1) }
+    else { setMonth(month + 1) }
+  }
+
+  const filteredCashbacks = useMemo(() => {
+    const firstDay = new Date(year, month, 1)
+    const lastDay = new Date(year, month + 1, 0, 23, 59, 59)
+    return accountCashbacks.filter((ac) => {
+      const start = new Date(ac.startDate)
+      const end = new Date(ac.endDate)
+      return start <= lastDay && end >= firstDay
+    })
+  }, [accountCashbacks, month, year])
 
   function resetForm() {
     setShowForm(false)
@@ -138,6 +164,12 @@ export default function AccountCashbacksManager({ account, bankName, bankIcon, o
 
       <div className="text-sm text-gray-500 mb-4">
         {bankIcon} {bankName}
+      </div>
+
+      <div className="flex items-center justify-between bg-white rounded-xl p-3 shadow-sm mb-4">
+        <button onClick={prevMonth} className="text-blue-600 text-lg px-2">◀</button>
+        <span className="font-semibold">{MONTHS[month]} {year}</span>
+        <button onClick={nextMonth} className="text-blue-600 text-lg px-2">▶</button>
       </div>
 
       {error && (
@@ -227,12 +259,12 @@ export default function AccountCashbacksManager({ account, bankName, bankIcon, o
       )}
 
       <div className="space-y-2">
-        {accountCashbacks.length === 0 && !showForm && (
+        {filteredCashbacks.length === 0 && !showForm && (
           <div className="text-center text-gray-400 py-8 text-sm">
-            Нет активных кешбеков. Нажмите "＋ Добавить кешбек", чтобы добавить.
+            Нет кешбеков за этот месяц. Нажмите "＋ Добавить кешбек", чтобы добавить.
           </div>
         )}
-        {accountCashbacks.map((ac) => {
+        {filteredCashbacks.map((ac) => {
           const cb = bankCashbackMap[ac.cashbackId]
           return (
             <div key={ac.id} className="bg-white rounded-xl p-3 shadow-sm">
