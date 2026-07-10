@@ -37,25 +37,27 @@ Full client-side PWA. All data in IndexedDB (Dexie). No backend, no API keys, no
 
 ```bash
 npm run dev       # Vite dev server
-npm run build     # tsc -b && vite build (typecheck then bundle)
+npm run build     # tsc -b && vite build (typecheck via project references, then bundle)
 npm run preview   # preview production build
 ```
 
+No test, lint, or formatter scripts exist. Build is the only verification gate.
+
 ## Deploy
 
-- `npm run build` → `dist/` → GitHub Pages via `.github/workflows/deploy.yml`
+- `npm run build` → `dist/` → GitHub Pages via `.github/workflows/deploy.yml` (push to `main`)
 - Base path `/MoneyCheck/` (set in `vite.config.ts`) — affects PWA scope, service worker, and asset references
 
 ## Stack
 
-- **React 19 + TypeScript strict** — `noUnusedLocals`, `noUnusedParameters` on in `tsconfig.app.json`
-- **Vite 6** — `@/` → `src/` alias
+- **React 19 + TypeScript strict** — `noUnusedLocals`, `noUnusedParameters`, `noUncheckedSideEffectImports` on in `tsconfig.app.json`
+- **Vite 6** — `@/` → `src/` alias (mirrored in `tsconfig.app.json` paths)
 - **Tailwind CSS 4** — CSS-first: `@import "tailwindcss"` in `src/index.css`, no config file
-- **Dexie 4** — 11 tables (schema v13): `transactions`, `categories`, `budgets`, `familyMembers`, `accountTypes`, `banks`, `accounts`, `debts`, `debtPayments`, `cashbacks`, `accountCashbacks`
-- **HashRouter** — 6 top routes in `src/App.tsx:23-28`: Dashboard (`/`), AddExpense (`/add`), Balance (`/balance`), Transactions (`/transactions`), Reports (`/reports`), Settings (`/settings`)
+- **Dexie 4** — 11 tables (schema v20): `transactions`, `categories`, `budgets`, `familyMembers`, `accountTypes`, `banks`, `accounts`, `debts`, `debtPayments`, `cashbacks`, `accountCashbacks`
+- **HashRouter** — 6 top routes in `src/App.tsx:47-52`: Dashboard (`/`), AddExpense (`/add`), Balance (`/balance`), Transactions (`/transactions`), Reports (`/reports`), Settings (`/settings`)
 - **Settings** is SPA-style view switching (`useState<View>`), not sub-routes
 - **PWA** — `vite-plugin-pwa` with auto-update service worker (`registerType: 'autoUpdate'`)
-- **Zustand 5** — UI state overlay (not data)
+- **Zustand 5** — UI state overlay (transaction filters in `src/stores/transactionFiltersStore.ts`)
 - **TanStack Query 5** — wired in `App.tsx` but unused (planned for future sync)
 - **@dnd-kit** — drag-and-drop reordering in settings managers (categories, accounts, etc.)
 - **recharts** — charts in Reports page
@@ -63,11 +65,13 @@ npm run preview   # preview production build
 
 ## DB
 
-- Schema versioning in `src/db/db.ts` (v13 current)
+- Schema versioning in `src/db/db.ts` (v20 current — 18 numbered migrations, versions 1–20)
 - All types/interfaces defined in `src/db/db.ts`
 - All CRUD functions in `src/db/*.ts`, re-exported from `src/db/index.ts`
 - `seedDefaults()` in `src/db/seed.ts` — runs idempotently on every app mount (checks count, bulk-adds if empty)
 - `src/db/dump.ts` — full import/export (all 11 tables with date field serialization)
+- Cashback presets in `src/data/cashbackPresets.ts`
+- `scripts/` directory exists but is empty
 
 ## Reactivity
 
