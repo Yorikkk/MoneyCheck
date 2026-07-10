@@ -52,9 +52,36 @@ export default function Balance() {
 
   const allEmpty = accounts.length === 0
 
+  const totalRegular = regularAccounts.reduce((sum, a) => sum + a.balance, 0)
+  const totalDebt = [...creditAccounts, ...mortgageAccounts].reduce((sum, a) => sum + a.balance, 0)
+  const max = Math.max(totalRegular, totalDebt)
+
   return (
     <div>
       <h1 className="text-2xl font-bold mb-4">Баланс</h1>
+
+      <div className="space-y-2 mb-4">
+        <div className="h-8 bg-gray-200 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-green-500 rounded-full flex items-center px-3 transition-all"
+            style={{ width: max > 0 ? `${(totalRegular / max) * 100}%` : '0%' }}
+          >
+            <span className="text-white text-sm font-medium truncate">
+              {formatCurrency(totalRegular)}
+            </span>
+          </div>
+        </div>
+        <div className="h-8 bg-gray-200 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-red-500 rounded-full flex items-center px-3 transition-all"
+            style={{ width: max > 0 ? `${(totalDebt / max) * 100}%` : '0%' }}
+          >
+            <span className="text-white text-sm font-medium truncate">
+              {formatCurrency(totalDebt)}
+            </span>
+          </div>
+        </div>
+      </div>
 
       {allEmpty && (
         <div className="text-center py-8 text-gray-400 text-sm">Нет счетов</div>
