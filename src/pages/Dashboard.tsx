@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import dayjs from 'dayjs'
-import { useTransactionsByMonth, useAccounts, useCategories, useDebts, useAccountTypes, useBanks, useCashbackSummary } from '@/hooks/useDb'
+import { useTransactionsByMonth, useAccounts, useCategories, useDebts, useBanks, useCashbackSummary } from '@/hooks/useDb'
 import { formatCurrency } from '@/lib/utils'
 
 const MONTHS = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек']
@@ -16,7 +16,6 @@ export default function Dashboard() {
   const categories = useCategories() ?? []
   const debts = useDebts('active') ?? []
 
-  const accountTypes = useAccountTypes() ?? []
   const banks = useBanks() ?? []
   const cashbackSummary = useCashbackSummary(year, month + 1) ?? []
 
@@ -25,16 +24,9 @@ export default function Dashboard() {
     return bank ? `${bank.icon} ${bank.name}` : ''
   }
 
-  const typeKindMap = new Map(accountTypes.map((t) => [t.id!, t.kind]))
-  const assetsBalance = accounts
-    .filter((a) => typeKindMap.get(a.typeId) === 'regular')
-    .reduce((s, a) => s + a.balance, 0)
-  const liabilitiesBalance = accounts
-    .filter((a) => typeKindMap.get(a.typeId) !== 'regular')
-    .reduce((s, a) => s + a.balance, 0)
-  const maxBalance = Math.max(assetsBalance, liabilitiesBalance, 1)
   const incomeTotal = transactions.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0)
   const expenseTotal = transactions.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+  const maxVal = Math.max(incomeTotal, expenseTotal, 1)
   const recentTx = [...transactions].slice(0, 5)
 
   function prevMonth() {
@@ -53,37 +45,26 @@ export default function Dashboard() {
         <button onClick={prevMonth} className="text-blue-600 text-lg px-2">◀</button>
         <div className="flex-1 text-center">
           <div className="font-semibold">{MONTHS[month]} {year}</div>
-          <div className="w-full space-y-1.5 mt-1">
-            <div className="w-full h-7 bg-blue-100 rounded-full overflow-hidden">
+          <div className="space-y-1.5 mt-1.5">
+            <div className="w-full h-7 bg-green-100 rounded-full overflow-hidden">
               <div
-                className="h-full bg-blue-600 rounded-full flex items-center px-3"
-                style={{ width: `${(assetsBalance / maxBalance) * 100}%` }}
+                className="h-full bg-green-600 rounded-full flex items-center px-3"
+                style={{ width: `${(incomeTotal / maxVal) * 100}%` }}
               >
-                <span className="text-white text-sm font-bold">{formatCurrency(assetsBalance)}</span>
+                <span className="text-white text-sm font-bold">+{formatCurrency(incomeTotal)}</span>
               </div>
             </div>
             <div className="w-full h-7 bg-red-100 rounded-full overflow-hidden">
               <div
                 className="h-full bg-red-600 rounded-full flex items-center px-3"
-                style={{ width: `${(liabilitiesBalance / maxBalance) * 100}%` }}
+                style={{ width: `${(expenseTotal / maxVal) * 100}%` }}
               >
-                <span className="text-white text-sm font-bold">{formatCurrency(liabilitiesBalance)}</span>
+                <span className="text-white text-sm font-bold">−{formatCurrency(expenseTotal)}</span>
               </div>
             </div>
           </div>
         </div>
         <button onClick={nextMonth} className="text-blue-600 text-lg px-2">▶</button>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-green-50 rounded-xl p-3 shadow-sm">
-          <div className="text-xs text-green-600 font-medium">Доходы</div>
-          <div className="text-lg font-bold text-green-700">{formatCurrency(incomeTotal)}</div>
-        </div>
-        <div className="bg-red-50 rounded-xl p-3 shadow-sm">
-          <div className="text-xs text-red-600 font-medium">Расходы</div>
-          <div className="text-lg font-bold text-red-700">{formatCurrency(expenseTotal)}</div>
-        </div>
       </div>
 
       {cashbackSummary.length > 0 && (
