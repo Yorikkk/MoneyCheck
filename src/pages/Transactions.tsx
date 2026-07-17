@@ -195,10 +195,10 @@ export default function Transactions() {
             value={datePreset}
             onChange={(e) => setDatePreset(e.target.value as typeof datePreset)}
           >
-            <option value="month">Месяц</option>
+            <option value="month">Этот месяц</option>
             <option value="lastMonth">Прошлый месяц</option>
             <option value="90days">90 дней</option>
-            <option value="year">Год</option>
+            <option value="year">Этот год</option>
             <option value="lastYear">Прошлый год</option>
             <option value="custom">Пользовательский выбор</option>
           </select>
