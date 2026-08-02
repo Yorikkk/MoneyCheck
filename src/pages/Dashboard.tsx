@@ -1,33 +1,23 @@
 import { useState } from 'react'
-import dayjs from 'dayjs'
-import { useTransactionsByMonth, useAccounts, useCategories, useDebts, useBanks, useCashbackSummary } from '@/hooks/useDb'
+
+import { useTransactionsByMonth, useDebts, useCashbackSummary } from '@/hooks/useDb'
 import { formatCurrency } from '@/lib/utils'
 
 const MONTHS = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек']
 
 export default function Dashboard() {
-  const now = dayjs()
-  const [month, setMonth] = useState(now.month())
-  const [year, setYear] = useState(now.year())
-  const [expanded, setExpanded] = useState(false)
+  const now = new Date()
+  const [month, setMonth] = useState(now.getMonth())
+  const [year, setYear] = useState(now.getFullYear())
 
   const transactions = useTransactionsByMonth(year, month + 1) ?? []
-  const accounts = useAccounts() ?? []
-  const categories = useCategories() ?? []
   const debts = useDebts('active') ?? []
 
-  const banks = useBanks() ?? []
   const cashbackSummary = useCashbackSummary(year, month + 1) ?? []
-
-  function getBankLabel(bankId: number) {
-    const bank = banks.find((b) => b.id === bankId)
-    return bank ? `${bank.icon} ${bank.name}` : ''
-  }
 
   const incomeTotal = transactions.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0)
   const expenseTotal = transactions.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
   const maxVal = Math.max(incomeTotal, expenseTotal, 1)
-  const recentTx = [...transactions].slice(0, 5)
 
   function prevMonth() {
     if (month === 0) { setMonth(11); setYear(year - 1) }
@@ -76,7 +66,7 @@ export default function Dashboard() {
             </span>
           </div>
           <div className="space-y-3">
-            {(expanded ? cashbackSummary : cashbackSummary.slice(0, 2)).map(({ bank, totalCashback, items }) => (
+            {cashbackSummary.map(({ bank, totalCashback, items }) => (
               <div key={bank.id}>
                 <div className="flex items-center justify-between mb-1.5">
                   <div className="flex items-center gap-2">
@@ -105,14 +95,6 @@ export default function Dashboard() {
               </div>
             ))}
           </div>
-          {cashbackSummary.length > 2 && (
-            <button
-              onClick={() => setExpanded(!expanded)}
-              className="mt-3 text-sm text-blue-600"
-            >
-              {expanded ? '← Свернуть' : `Ещё ${cashbackSummary.length - 2} ${cashbackSummary.length - 2 === 1 ? 'банк' : 'банка'} →`}
-            </button>
-          )}
         </div>
       )}
 
@@ -121,39 +103,6 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-gray-500">Активные долги</span>
             <span className="text-lg font-bold text-orange-600">{debts.length}</span>
-          </div>
-        </div>
-      )}
-
-      {recentTx.length > 0 && (
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="text-sm font-medium text-gray-500 mb-3">Последние операции</div>
-          <div className="space-y-2">
-            {recentTx.map((tx) => {
-              const cat = categories.find((c) => c.id === tx.categoryId)
-              const parentCat = cat?.parentId ? categories.find((c) => c.id === cat.parentId) : undefined
-              const account = accounts.find((a) => a.id === tx.accountId)
-              return (
-                <div key={tx.id} className="flex items-center gap-3 text-sm">
-                  <span className="text-lg">{tx.type === 'transfer' ? '🔄' : (cat?.icon ?? '📦')}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="truncate font-medium">
-                      {tx.type === 'transfer'
-                        ? `Перевод${tx.description ? `, ${tx.description}` : ''}`
-                        : `${parentCat ? `${parentCat.name} · ` : ''}${cat?.name ?? '—'}${tx.description ? `, ${tx.description}` : ''}`}
-                    </div>
-                    <div className="text-xs text-gray-400">
-                      {dayjs(tx.date).format('D MMM')} · {tx.type === 'transfer'
-                        ? `${account?.name} → ${accounts.find((a) => a.id === tx.transferToAccountId)?.name}`
-                        : `${account?.name} · ${getBankLabel(account?.bankId ?? 0)}`}
-                    </div>
-                  </div>
-                  <span className={`font-semibold shrink-0 ${tx.type === 'transfer' ? 'text-blue-600' : tx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                    {tx.type === 'transfer' ? '' : tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
-                  </span>
-                </div>
-              )
-            })}
           </div>
         </div>
       )}
