@@ -7,6 +7,7 @@ import {
 } from 'recharts'
 import { ExpenseStructureSection } from '@/components/reports/ExpenseStructureSection'
 import { IncomeStructureSection } from '@/components/reports/IncomeStructureSection'
+import { CashbackSection } from '@/components/reports/CashbackSection'
 
 const MONTHS = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек']
 
@@ -140,6 +141,14 @@ export default function Reports() {
       />
 
       <IncomeStructureSection
+        transactions={periodTx}
+        categories={categories}
+        accounts={accounts}
+        banks={banks}
+        periodLabel={PERIOD_LABELS[period]}
+      />
+
+      <CashbackSection
         transactions={periodTx}
         categories={categories}
         accounts={accounts}
