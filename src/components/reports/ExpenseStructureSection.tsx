@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
 import { formatCurrency } from '@/lib/utils'
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
-import type { Transaction, Category, Account } from '@/db/db'
+import type { Transaction, Category, Account, Bank } from '@/db/db'
 
 const COLORS = ['#F44336', '#E91E63', '#9C27B0', '#3F51B5', '#2196F3', '#009688', '#4CAF50', '#FF9800', '#795548', '#607D8B']
 
@@ -17,10 +18,12 @@ interface Props {
   transactions: Transaction[]
   categories: Category[]
   accounts: Account[]
+  banks: Bank[]
   periodLabel: string
 }
 
-export function ExpenseStructureSection({ transactions, categories, accounts, periodLabel }: Props) {
+export function ExpenseStructureSection({ transactions, categories, accounts, banks, periodLabel }: Props) {
+  const navigate = useNavigate()
   const [drillCategory, setDrillCategory] = useState<Category | null>(null)
   const [drillSubcategory, setDrillSubcategory] = useState<Category | null>(null)
 
@@ -129,15 +132,20 @@ export function ExpenseStructureSection({ transactions, categories, accounts, pe
             {drillTx.map((tx) => {
               const cat = catMap.get(tx.categoryId!)
               const account = accounts.find((a) => a.id === tx.accountId)
+              const bank = banks.find((b) => b.id === account?.bankId)
               return (
-                <div key={tx.id} className="flex items-center gap-3 text-sm">
+                <div
+                  key={tx.id}
+                  onClick={() => navigate('/add', { state: { editTx: tx } })}
+                  className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 rounded p-1 -ml-1"
+                >
                   <span className="text-lg">{cat?.icon ?? '📦'}</span>
                   <div className="flex-1 min-w-0">
                     <div className="truncate font-medium">
                       {cat?.name ?? '—'}{tx.description ? `, ${tx.description}` : ''}
                     </div>
                     <div className="text-xs text-gray-400">
-                      {dayjs(tx.date).format('D MMM')} · {account?.name ?? '—'}
+                      {dayjs(tx.date).format('D MMM')} · {account?.name ?? '—'}{bank ? ` · ${bank.icon} ${bank.name}` : ''}
                     </div>
                   </div>
                   <span className="font-semibold shrink-0 text-red-600">

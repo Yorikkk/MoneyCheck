@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import dayjs from 'dayjs'
-import { useAllTransactions, useCategories, useAccounts } from '@/hooks/useDb'
+import { useAllTransactions, useCategories, useAccounts, useBanks } from '@/hooks/useDb'
 import { formatCurrency } from '@/lib/utils'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -24,6 +24,7 @@ export default function Reports() {
   const allTx = useAllTransactions() ?? []
   const categories = useCategories() ?? []
   const accounts = useAccounts() ?? []
+  const banks = useBanks() ?? []
 
   const months = useMemo(() => {
     const result: { month: number; year: number; label: string }[] = []
@@ -134,6 +135,7 @@ export default function Reports() {
         transactions={periodTx}
         categories={categories}
         accounts={accounts}
+        banks={banks}
         periodLabel={PERIOD_LABELS[period]}
       />
 
@@ -141,6 +143,7 @@ export default function Reports() {
         transactions={periodTx}
         categories={categories}
         accounts={accounts}
+        banks={banks}
         periodLabel={PERIOD_LABELS[period]}
       />
     </div>
