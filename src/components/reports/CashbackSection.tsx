@@ -189,11 +189,6 @@ export function CashbackSection({ transactions, categories, accounts, banks, per
                 >
                   <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
                   <span className="truncate flex-1">{item.name}</span>
-                  {i === 0 && (
-                    <span className="shrink-0 text-[10px] font-semibold bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full">
-                      Больше всех
-                    </span>
-                  )}
                   <span className="font-medium">{formatCurrency(item.value)}</span>
                 </div>
               ))}
