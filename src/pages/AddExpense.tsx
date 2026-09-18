@@ -293,6 +293,8 @@ export default function AddExpense() {
                 onChange={(e) => setPrincipalAmount(e.target.value)}
                 className="flex-1 border border-orange-200 rounded-lg px-3 py-2 text-sm"
               />
+            </div>
+            <div className="flex gap-2">
               <input
                 type="number"
                 placeholder="Проценты"
