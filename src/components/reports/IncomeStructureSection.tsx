@@ -176,7 +176,7 @@ export function IncomeStructureSection({ transactions, categories, accounts, per
               </ResponsiveContainer>
             </div>
             <div className="flex-1 min-w-0 space-y-1.5">
-              {currentPieData.slice(0, 8).map((item, i) => (
+              {currentPieData.map((item, i) => (
                 <div
                   key={item.catId}
                   onClick={() => (drillCategory ? handleSubcatClick : handleRootClick)(item)}
