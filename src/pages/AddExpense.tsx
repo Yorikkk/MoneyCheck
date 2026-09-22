@@ -4,7 +4,7 @@ import dayjs from 'dayjs'
 import { useRootCategories, useSubcategories, useAccounts, useAccountTypes, useBanks } from '@/hooks/useDb'
 import { addTransaction, updateTransaction, updateAccount, hasSubcategories } from '@/db'
 import type { Transaction, Category } from '@/db'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatDate } from '@/lib/utils'
 
 type Tab = 'expense' | 'income' | 'transfer'
 
@@ -23,6 +23,15 @@ function getDestEffect(kind: string | undefined, amount: number, principalAmount
     return -amount
   }
   return amount
+}
+
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between items-start gap-3 text-sm">
+      <span className="text-gray-500 shrink-0">{label}</span>
+      <span className={`text-right font-medium truncate ${value === '—' ? 'text-gray-400' : 'text-gray-900'}`}>{value}</span>
+    </div>
+  )
 }
 
 export default function AddExpense() {
@@ -107,6 +116,21 @@ export default function AddExpense() {
   const selectedDestAccount = type === 'transfer' ? accounts.find((a) => a.id === transferToAccountId) : undefined
   const selectedDestType = selectedDestAccount ? accountTypes.find((t) => t.id === selectedDestAccount?.typeId) : undefined
   const isDestMortgageType = selectedDestType?.kind === 'mortgage'
+
+  const categoryLabel = selectedCategory
+    ? browseParent
+      ? `${browseParent.name} - ${selectedCategory.name}`
+      : selectedCategory.name
+    : '—'
+  const selectedAccountLabel = selectedAccount
+    ? `${selectedAccount.name} - ${getBankLabel(selectedAccount.bankId)} - ${formatCurrency(selectedAccount.balance)}`
+    : '—'
+  const destAccountLabel = selectedDestAccount
+    ? `${selectedDestAccount.name} - ${getBankLabel(selectedDestAccount.bankId)} - ${formatCurrency(selectedDestAccount.balance)}`
+    : '—'
+  const dateLabel = formatDate(date)
+  const descriptionLabel = description.trim() || '—'
+  const cashbackLabel = noCashback ? 'нет' : 'да'
 
   const showLoanFields = type === 'transfer' && isDestMortgageType
 
@@ -279,6 +303,23 @@ export default function AddExpense() {
             {label}
           </button>
         ))}
+      </div>
+
+      <div className="bg-white rounded-xl p-4 shadow-sm mb-4 space-y-1.5">
+        {type === 'transfer' ? (
+          <>
+            <SummaryRow label="Откуда" value={selectedAccountLabel} />
+            <SummaryRow label="Куда" value={destAccountLabel} />
+          </>
+        ) : (
+          <>
+            <SummaryRow label="Категория" value={categoryLabel} />
+            <SummaryRow label="Счёт" value={selectedAccountLabel} />
+            <SummaryRow label="Дата" value={dateLabel} />
+            <SummaryRow label="Описание" value={descriptionLabel} />
+            {type === 'expense' && <SummaryRow label="Рассчитать кешбек" value={cashbackLabel} />}
+          </>
+        )}
       </div>
 
       {type === 'transfer' && isDestMortgageType ? (
