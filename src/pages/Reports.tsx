@@ -1,14 +1,11 @@
 import { useState, useMemo } from 'react'
 import dayjs from 'dayjs'
 import { useAllTransactions, useCategories, useAccounts, useBanks, useAccountTypes } from '@/hooks/useDb'
-import { formatCurrency } from '@/lib/utils'
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-} from 'recharts'
 import { ExpenseStructureSection } from '@/components/reports/ExpenseStructureSection'
 import { IncomeStructureSection } from '@/components/reports/IncomeStructureSection'
 import { CashbackSection } from '@/components/reports/CashbackSection'
 import { InvestmentTransfersSection } from '@/components/reports/InvestmentTransfersSection'
+import { IncomeExpenseSection } from '@/components/reports/IncomeExpenseSection'
 
 const MONTHS = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек']
 
@@ -73,20 +70,6 @@ export default function Reports() {
   const dateFrom = dayjs(`${months[0].year}-${months[0].month}-01`).format('YYYY-MM-DD')
   const dateTo = dayjs(`${months[months.length - 1].year}-${months[months.length - 1].month}-01`).endOf('month').format('YYYY-MM-DD')
 
-  const incomeByMonth = useMemo(() => {
-    return months.map((m) => {
-      const monthTx = allTx.filter((t) => {
-        const d = dayjs(t.date)
-        return d.month() + 1 === m.month && d.year() === m.year
-      })
-      return {
-        name: m.label,
-        income: monthTx.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0),
-        expense: monthTx.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0),
-      }
-    })
-  }, [allTx, months])
-
   const periodTx = useMemo(() => {
     return allTx.filter((t) => {
       const d = dayjs(t.date)
@@ -145,21 +128,7 @@ export default function Reports() {
         </button>
       </div>
 
-      <div className="bg-white rounded-xl p-4 shadow-sm">
-        <div className="text-sm font-medium text-gray-500 mb-3">Доходы / Расходы</div>
-        <div className="h-48">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={incomeByMonth}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip formatter={(v: number) => formatCurrency(v)} />
-              <Bar dataKey="income" fill="#4CAF50" radius={[4, 4, 0, 0]} name="Доходы" />
-              <Bar dataKey="expense" fill="#F44336" radius={[4, 4, 0, 0]} name="Расходы" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+      <IncomeExpenseSection transactions={periodTx} months={months} />
 
       <ExpenseStructureSection
         transactions={periodTx}
