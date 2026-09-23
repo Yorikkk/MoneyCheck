@@ -39,6 +39,13 @@ export default function Transactions() {
     resetFilters,
   } = useTransactionFiltersStore()
 
+  const isFilterDefault =
+    filterAccount === null &&
+    filterType === 'all' &&
+    datePreset === 'month' &&
+    customDateFrom === '' &&
+    customDateTo === ''
+
   const lastRangeRef = useRef({ from: dayjs().startOf('month').format('YYYY-MM-DD'), to: dayjs().endOf('month').format('YYYY-MM-DD') })
 
   useEffect(() => {
@@ -154,7 +161,7 @@ export default function Transactions() {
         <div className="flex items-center gap-2">
           <button
             onClick={resetFilters}
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-300 text-white text-lg"
+            className={`w-8 h-8 flex items-center justify-center rounded-full text-white text-lg ${isFilterDefault ? 'bg-gray-300' : 'bg-blue-600'}`}
             title="Сбросить фильтры"
           >
             ⟳
