@@ -310,6 +310,8 @@ export default function AddExpense() {
           <>
             <SummaryRow label="Откуда" value={selectedAccountLabel} />
             <SummaryRow label="Куда" value={destAccountLabel} />
+            <SummaryRow label="Дата" value={dateLabel} />
+            <SummaryRow label="Описание" value={descriptionLabel} />
           </>
         ) : (
           <>
