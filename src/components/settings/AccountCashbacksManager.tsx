@@ -14,10 +14,10 @@ interface Props {
   onBack: () => void
 }
 
-function getInitialDates() {
-  const now = dayjs()
-  const start = now.startOf('month').toDate()
-  const end = now.endOf('month').toDate()
+function getInitialDates(month: number, year: number) {
+  const selected = dayjs().year(year).month(month)
+  const start = selected.startOf('month').toDate()
+  const end = selected.endOf('month').toDate()
   return { startDate: start, endDate: end }
 }
 
@@ -92,7 +92,7 @@ export default function AccountCashbacksManager({ account, bankName, bankIcon, o
   }
 
   function initAdd() {
-    const dates = getInitialDates()
+    const dates = getInitialDates(month, year)
     setEditId(null)
     setCashbackId('')
     setCategoryId('')
