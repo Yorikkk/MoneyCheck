@@ -135,6 +135,7 @@ export default function Reports() {
         categories={categories}
         accounts={accounts}
         banks={banks}
+        accountTypes={accountTypes}
         periodLabel={PERIOD_LABELS[period]}
       />
 
